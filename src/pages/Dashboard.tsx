@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  "https://your-project-url.supabase.co",
-  "your-anon-key"
+  "https://hmmbolvudsckgzjzzwnr.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtbWJvbHZ1ZHNja2d6anp6d25yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMTIxMDMsImV4cCI6MjA1NDY4ODEwM30.rGUHvUPbkqNCBcF_JkaEpKPibF-QH5dNhWD2QLjDLqg"
 );
 
 const Dashboard = () => {
