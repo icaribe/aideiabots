@@ -18,7 +18,7 @@ type AgentType = {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 const agentTypes: AgentType[] = [
