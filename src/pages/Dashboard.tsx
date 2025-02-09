@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Clock, MessageSquare, Plus, Robot, Settings, Users } from "lucide-react";
+import { Bot, Check, Clock, MessageSquare, Plus, Settings, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -23,8 +23,8 @@ const supabase = createClient(
 );
 
 const menuItems = [
-  { title: "Dashboards", icon: Robot, active: true },
-  { title: "Agentes", icon: Robot },
+  { title: "Dashboards", icon: Bot, active: true },
+  { title: "Agentes", icon: Bot },
   { title: "Chat", icon: MessageSquare },
   { title: "Equipe", icon: Users },
   { title: "Configurações", icon: Settings },
@@ -78,7 +78,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Robot className="h-6 w-6 text-purple-600" />
+                <Bot className="h-6 w-6 text-purple-600" />
                 Dashboards
               </h1>
               <p className="text-gray-500 mt-1">Informações em tempo real sobre sua conta e agentes</p>
@@ -130,7 +130,7 @@ const Dashboard = () => {
 
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Robot className="h-12 w-12 text-gray-400 mb-4" />
+              <Bot className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold mb-2">Nenhum agente</h3>
               <p className="text-gray-500 mb-4">Comece criando seu primeiro agente.</p>
               <Button className="bg-teal-500 hover:bg-teal-600">
