@@ -122,7 +122,10 @@ const Dashboard = () => {
 
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold">Seus Agentes</h2>
-            <Button className="bg-teal-500 hover:bg-teal-600">
+            <Button 
+              className="bg-teal-500 hover:bg-teal-600"
+              onClick={() => navigate("/create-agent")}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Criar agente
             </Button>
@@ -133,7 +136,10 @@ const Dashboard = () => {
               <Bot className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold mb-2">Nenhum agente</h3>
               <p className="text-gray-500 mb-4">Comece criando seu primeiro agente.</p>
-              <Button className="bg-teal-500 hover:bg-teal-600">
+              <Button 
+                className="bg-teal-500 hover:bg-teal-600"
+                onClick={() => navigate("/create-agent")}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Criar agente
               </Button>
