@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -133,25 +132,145 @@ const CreateAgent = () => {
 
     setIsLoadingModels(true);
     try {
-      // Simulação de chamada à API para obter modelos
-      // Em um caso real, isso seria uma chamada à API do provedor selecionado
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let models: string[] = [];
       
-      const mockModels: Record<string, string[]> = {
-        openai: ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"],
-        gemini: ["gemini-pro", "gemini-ultra"],
-        anthropic: ["claude-2", "claude-3-opus", "claude-3-sonnet"],
-        groq: ["llama2-70b", "mixtral-8x7b"],
-        openrouter: ["openai/gpt-4", "anthropic/claude-3", "google/gemini-pro"],
-        ollama: ["llama2", "mistral", "mixtral"]
-      };
+      switch (selectedProvider) {
+        case 'groq':
+          models = await fetchGroqModels(apiKey);
+          break;
+        case 'openai':
+          models = await fetchOpenAIModels(apiKey);
+          break;
+        case 'anthropic':
+          models = await fetchAnthropicModels(apiKey);
+          break;
+        case 'gemini':
+          models = await fetchGeminiModels(apiKey);
+          break;
+        case 'openrouter':
+          models = await fetchOpenRouterModels(apiKey);
+          break;
+        case 'ollama':
+          models = await fetchOllamaModels();
+          break;
+      }
 
-      setAvailableModels(mockModels[selectedProvider] || []);
-      toast.success("API Key salva com sucesso!");
+      setAvailableModels(models);
+      toast.success("API Key validada com sucesso!");
     } catch (error) {
-      toast.error("Erro ao validar API Key");
+      console.error("Erro ao buscar modelos:", error);
+      toast.error(error.message || "Erro ao validar API Key");
+      setAvailableModels([]);
     } finally {
       setIsLoadingModels(false);
+    }
+  };
+
+  const fetchGroqModels = async (apiKey: string): Promise<string[]> => {
+    try {
+      const response = await fetch('https://api.groq.com/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao buscar modelos da Groq');
+      }
+      
+      const data = await response.json();
+      return data.data.map((model: any) => model.id);
+    } catch (error) {
+      throw new Error('Erro ao conectar com a API da Groq');
+    }
+  };
+
+  const fetchOpenAIModels = async (apiKey: string): Promise<string[]> => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao buscar modelos da OpenAI');
+      }
+      
+      const data = await response.json();
+      return data.data
+        .filter((model: any) => model.id.includes('gpt'))
+        .map((model: any) => model.id);
+    } catch (error) {
+      throw new Error('Erro ao conectar com a API da OpenAI');
+    }
+  };
+
+  const fetchAnthropicModels = async (apiKey: string): Promise<string[]> => {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao buscar modelos da Anthropic');
+      }
+      
+      const data = await response.json();
+      return data.models.map((model: any) => model.id);
+    } catch (error) {
+      throw new Error('Erro ao conectar com a API da Anthropic');
+    }
+  };
+
+  const fetchGeminiModels = async (apiKey: string): Promise<string[]> => {
+    // Google AI API não tem um endpoint de listagem de modelos
+    // Retornando lista fixa dos modelos disponíveis
+    return [
+      'gemini-pro',
+      'gemini-pro-vision',
+      'gemini-ultra',
+      'gemini-ultra-vision'
+    ];
+  };
+
+  const fetchOpenRouterModels = async (apiKey: string): Promise<string[]> => {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao buscar modelos do OpenRouter');
+      }
+      
+      const data = await response.json();
+      return data.data.map((model: any) => model.id);
+    } catch (error) {
+      throw new Error('Erro ao conectar com a API do OpenRouter');
+    }
+  };
+
+  const fetchOllamaModels = async (): Promise<string[]> => {
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      
+      if (!response.ok) {
+        throw new Error('Falha ao buscar modelos do Ollama');
+      }
+      
+      const data = await response.json();
+      return data.models.map((model: any) => model.name);
+    } catch (error) {
+      throw new Error('Erro ao conectar com o Ollama. Certifique-se que o servidor local está rodando.');
     }
   };
 
@@ -346,4 +465,3 @@ const CreateAgent = () => {
 };
 
 export default CreateAgent;
-
