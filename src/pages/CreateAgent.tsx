@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -105,6 +106,13 @@ const agentTypes: AgentType[] = [
 
 type Step = "type" | "llm" | "config";
 
+type IntentConfig = {
+  name: string;
+  description: string;
+  examples: string[];
+  webhookUrl: string;
+};
+
 const CreateAgent = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>("type");
@@ -114,6 +122,17 @@ const CreateAgent = () => {
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  
+  // Configuration state
+  const [agentName, setAgentName] = useState("");
+  const [agentDescription, setAgentDescription] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [intents, setIntents] = useState<IntentConfig[]>([{
+    name: "",
+    description: "",
+    examples: [""],
+    webhookUrl: ""
+  }]);
 
   const steps = [
     { id: "type", label: "Tipo" },
@@ -267,10 +286,69 @@ const CreateAgent = () => {
     }
   };
 
+  const handleAddIntent = () => {
+    setIntents([...intents, {
+      name: "",
+      description: "",
+      examples: [""],
+      webhookUrl: ""
+    }]);
+  };
+
+  const handleRemoveIntent = (index: number) => {
+    if (intents.length > 1) {
+      const newIntents = [...intents];
+      newIntents.splice(index, 1);
+      setIntents(newIntents);
+    }
+  };
+
+  const handleUpdateIntent = (index: number, field: keyof IntentConfig, value: any) => {
+    const newIntents = [...intents];
+    newIntents[index] = { ...newIntents[index], [field]: value };
+    setIntents(newIntents);
+  };
+
+  const handleAddExample = (intentIndex: number) => {
+    const newIntents = [...intents];
+    newIntents[intentIndex].examples.push("");
+    setIntents(newIntents);
+  };
+
+  const handleUpdateExample = (intentIndex: number, exampleIndex: number, value: string) => {
+    const newIntents = [...intents];
+    newIntents[intentIndex].examples[exampleIndex] = value;
+    setIntents(newIntents);
+  };
+
+  const handleRemoveExample = (intentIndex: number, exampleIndex: number) => {
+    if (intents[intentIndex].examples.length > 1) {
+      const newIntents = [...intents];
+      newIntents[intentIndex].examples.splice(exampleIndex, 1);
+      setIntents(newIntents);
+    }
+  };
+
   const handleSaveModel = () => {
     if (!selectedModel) return;
     toast.success("Modelo selecionado com sucesso!");
     setCurrentStep("config");
+  };
+
+  const handleCreateAgent = async () => {
+    if (!agentName || !whatsappNumber || intents.some(intent => !intent.name || !intent.webhookUrl)) {
+      toast.error("Por favor, preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      // TODO: Implement agent creation with API call
+      toast.success("Agente criado com sucesso!");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Erro ao criar agente:", error);
+      toast.error("Erro ao criar agente. Tente novamente.");
+    }
   };
 
   return (
@@ -440,6 +518,152 @@ const CreateAgent = () => {
                   onClick={handleSaveModel}
                 >
                   Continuar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {currentStep === "config" && (
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Configuração do Agente</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nome do Agente</Label>
+                    <Input 
+                      value={agentName}
+                      onChange={(e) => setAgentName(e.target.value)}
+                      placeholder="Ex: Assistente de Vendas"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Descrição</Label>
+                    <Textarea 
+                      value={agentDescription}
+                      onChange={(e) => setAgentDescription(e.target.value)}
+                      placeholder="Descreva o propósito e capacidades do seu agente"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Número do WhatsApp</Label>
+                    <Input 
+                      value={whatsappNumber}
+                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                      placeholder="Ex: +5511999999999"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Intenções</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddIntent}
+                  >
+                    Adicionar Intenção
+                  </Button>
+                </div>
+
+                {intents.map((intent, intentIndex) => (
+                  <Card key={intentIndex} className="p-4 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 space-y-4">
+                        <div>
+                          <Label>Nome da Intenção</Label>
+                          <Input 
+                            value={intent.name}
+                            onChange={(e) => handleUpdateIntent(intentIndex, "name", e.target.value)}
+                            placeholder="Ex: solicitar_orcamento"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Descrição</Label>
+                          <Textarea 
+                            value={intent.description}
+                            onChange={(e) => handleUpdateIntent(intentIndex, "description", e.target.value)}
+                            placeholder="Descreva quando esta intenção deve ser reconhecida"
+                          />
+                        </div>
+
+                        <div>
+                          <Label>Webhook URL (n8n)</Label>
+                          <Input 
+                            value={intent.webhookUrl}
+                            onChange={(e) => handleUpdateIntent(intentIndex, "webhookUrl", e.target.value)}
+                            placeholder="https://n8n.seudominio.com/webhook/..."
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <Label>Exemplos de Frases</Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAddExample(intentIndex)}
+                            >
+                              Adicionar Exemplo
+                            </Button>
+                          </div>
+                          
+                          {intent.examples.map((example, exampleIndex) => (
+                            <div key={exampleIndex} className="flex gap-2">
+                              <Input 
+                                value={example}
+                                onChange={(e) => handleUpdateExample(intentIndex, exampleIndex, e.target.value)}
+                                placeholder="Ex: Gostaria de saber o preço do produto X"
+                              />
+                              {intent.examples.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveExample(intentIndex, exampleIndex)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {intents.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="ml-2"
+                          onClick={() => handleRemoveIntent(intentIndex)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex justify-between mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentStep("llm")}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  className="bg-teal-500 hover:bg-teal-600"
+                  onClick={handleCreateAgent}
+                >
+                  Criar Agente
                 </Button>
               </div>
             </div>
