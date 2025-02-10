@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -169,21 +168,11 @@ const CreateAgent = () => {
 
   const fetchGroqModels = async (apiKey: string): Promise<string[]> => {
     try {
-      // Groq's API endpoint for listing models
-      const response = await fetch('https://api.groq.com/v1/completion/models', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Falha ao buscar modelos da Groq');
-      }
-      
-      const data = await response.json();
-      return data.models || [];
+      return [
+        'llama2-70b-4096',
+        'mixtral-8x7b-32768',
+        'gemma-7b-it'
+      ];
     } catch (error) {
       console.error("Erro ao buscar modelos da Groq:", error);
       throw new Error('Erro ao conectar com a API da Groq');
@@ -287,7 +276,6 @@ const CreateAgent = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <Button 
             variant="ghost" 
@@ -305,7 +293,6 @@ const CreateAgent = () => {
           </Button>
         </div>
 
-        {/* Progress Steps */}
         <div className="mb-12">
           <h1 className="text-2xl font-bold text-center mb-6">Criar Novo Agente</h1>
           <div className="flex justify-center gap-4">
@@ -331,7 +318,6 @@ const CreateAgent = () => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="max-w-2xl mx-auto">
           {currentStep === "type" && (
             <div>
@@ -374,7 +360,6 @@ const CreateAgent = () => {
             <div>
               <h2 className="text-xl font-semibold mb-6">Selecione o Provedor LLM</h2>
               
-              {/* Provider Selection */}
               <div className="space-y-4 mb-8">
                 {llmProviders.map((provider) => (
                   <Card
@@ -393,7 +378,6 @@ const CreateAgent = () => {
                 ))}
               </div>
 
-              {/* API Key Input */}
               {selectedProvider && (
                 <div className="space-y-4 mb-8">
                   <div className="space-y-2">
@@ -418,7 +402,6 @@ const CreateAgent = () => {
                     </div>
                   </div>
 
-                  {/* Model Selection */}
                   {availableModels.length > 0 && (
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -444,7 +427,6 @@ const CreateAgent = () => {
                 </div>
               )}
 
-              {/* Navigation Buttons */}
               <div className="flex justify-between mt-8">
                 <Button
                   variant="outline"
