@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -168,7 +169,8 @@ const CreateAgent = () => {
 
   const fetchGroqModels = async (apiKey: string): Promise<string[]> => {
     try {
-      const response = await fetch('https://api.groq.com/v1/models', {
+      // Groq's API endpoint for listing models
+      const response = await fetch('https://api.groq.com/v1/completion/models', {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
@@ -176,12 +178,14 @@ const CreateAgent = () => {
       });
       
       if (!response.ok) {
-        throw new Error('Falha ao buscar modelos da Groq');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Falha ao buscar modelos da Groq');
       }
       
       const data = await response.json();
-      return data.data.map((model: any) => model.id);
+      return data.models || [];
     } catch (error) {
+      console.error("Erro ao buscar modelos da Groq:", error);
       throw new Error('Erro ao conectar com a API da Groq');
     }
   };
