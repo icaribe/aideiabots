@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
@@ -17,11 +16,10 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import { toast } from "sonner";
 
-const supabase = createClient(
-  "https://hmmbolvudsckgzjzzwnr.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtbWJvbHZ1ZHNja2d6anp6d25yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMTIxMDMsImV4cCI6MjA1NDY4ODEwM30.rGUHvUPbkqNCBcF_JkaEPKPibF-QH5dNhWD2QLjDLqg"
-);
+const supabaseUrl = "https://hmmbolvudsckgzjzzwnr.supabase.co";
+const supabase = createClient(supabaseUrl, import.meta.env.VITE_SUPABASE_KEY || "");
 
 const menuItems = [
   { title: "Dashboards", icon: Bot, route: "/dashboard", active: true },
@@ -31,7 +29,6 @@ const menuItems = [
   { title: "Configurações", icon: Settings, route: "/settings" },
 ];
 
-// Dados de exemplo para o gráfico
 const chartData = [
   { date: '01/03', atendimentos: 4 },
   { date: '02/03', atendimentos: 7 },
@@ -75,17 +72,23 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchAgents = async () => {
-      const { data, error } = await supabase
-        .from('agents')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('agents')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
+        if (error) {
+          console.error('Erro ao buscar agentes:', error);
+          toast.error("Erro ao carregar agentes. Verifique se você está conectado ao Supabase.");
+          return;
+        }
+
+        setAgents(data || []);
+      } catch (error) {
         console.error('Erro ao buscar agentes:', error);
-        return;
+        toast.error("Erro ao carregar agentes. Por favor, tente novamente.");
       }
-
-      setAgents(data || []);
     };
 
     fetchAgents();
