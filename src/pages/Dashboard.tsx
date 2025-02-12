@@ -71,7 +71,14 @@ const Dashboard = () => {
           return;
         }
 
-        setAgents(data || []);
+        // Convert the data to match the Bot type
+        const formattedBots: Bot[] = (data || []).map(bot => ({
+          ...bot,
+          type: 'Custom', // Default type for existing bots
+          whatsappNumber: '', // Default empty string for whatsapp number
+        })) as Bot[];
+
+        setAgents(formattedBots);
       } catch (error) {
         console.error('Erro ao buscar agentes:', error);
         toast.error("Erro ao carregar agentes. Por favor, tente novamente.");
