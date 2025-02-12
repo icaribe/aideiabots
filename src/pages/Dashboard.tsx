@@ -1,6 +1,6 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -17,13 +17,11 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
-
-const supabaseUrl = "https://hmmbolvudsckgzjzzwnr.supabase.co";
-const supabase = createClient(supabaseUrl, import.meta.env.VITE_SUPABASE_KEY || "");
+import { supabase } from "@/integrations/supabase/client";
 
 const menuItems = [
-  { title: "Dashboards", icon: Bot, route: "/dashboard", active: true },
-  { title: "Agentes", icon: Bot, route: "/agents" },
+  { title: "Dashboards", icon: Bot, route: "/dashboard" },
+  { title: "Agentes", icon: Bot, route: "/agents", active: true },
   { title: "Chat", icon: MessageSquare, route: "/chat" },
   { title: "Equipe", icon: Users, route: "/team" },
   { title: "Configurações", icon: Settings, route: "/settings" },
