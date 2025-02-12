@@ -126,6 +126,41 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          bot_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_from_user: boolean | null
+          user_id: string
+        }
+        Insert: {
+          bot_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_from_user?: boolean | null
+          user_id: string
+        }
+        Update: {
+          bot_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_from_user?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           bot_count: number

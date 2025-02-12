@@ -1,7 +1,6 @@
 
-import { Bot, Plus } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Agent = {
@@ -22,16 +21,7 @@ export const AgentsList = ({ agents }: AgentsListProps) => {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold">Seus Agentes</h2>
-        <Button 
-          className="bg-teal-500 hover:bg-teal-600"
-          onClick={() => navigate("/create-agent")}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Criar agente
-        </Button>
-      </div>
+      <h2 className="text-xl font-bold mb-6">Seus Agentes</h2>
 
       {agents.length === 0 ? (
         <Card className="border-dashed">
@@ -39,19 +29,16 @@ export const AgentsList = ({ agents }: AgentsListProps) => {
             <Bot className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhum agente</h3>
             <p className="text-gray-500 mb-4">Comece criando seu primeiro agente.</p>
-            <Button 
-              className="bg-teal-500 hover:bg-teal-600"
-              onClick={() => navigate("/create-agent")}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Criar agente
-            </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {agents.map((agent) => (
-            <Card key={agent.id} className="hover:border-purple-200 transition-colors cursor-pointer">
+            <Card 
+              key={agent.id} 
+              className="hover:border-purple-200 transition-colors cursor-pointer"
+              onClick={() => navigate(`/chat/${agent.id}`)}
+            >
               <CardHeader>
                 <CardTitle className="text-lg">{agent.name}</CardTitle>
               </CardHeader>
