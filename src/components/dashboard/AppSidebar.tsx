@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Bot, MessageSquare, Settings, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,7 @@ import {
 
 const menuItems = [
   { title: "Dashboards", icon: Bot, route: "/dashboard" },
-  { title: "Agentes", icon: Bot, route: "/agents", active: true },
+  { title: "Agentes", icon: Bot, route: "/agents" },
   { title: "Chat", icon: MessageSquare, route: "/chat" },
   { title: "Equipe", icon: Users, route: "/team" },
   { title: "Configurações", icon: Settings, route: "/settings" },
@@ -26,6 +26,7 @@ type AppSidebarProps = {
 
 export const AppSidebar = ({ workspace }: AppSidebarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <Sidebar>
@@ -42,7 +43,7 @@ export const AppSidebar = ({ workspace }: AppSidebarProps) => {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    className={item.active ? "bg-purple-50 text-purple-600" : ""}
+                    className={location.pathname === item.route ? "bg-purple-50 text-purple-600" : ""}
                     onClick={() => navigate(item.route)}
                   >
                     <item.icon className="h-4 w-4" />
