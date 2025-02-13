@@ -43,9 +43,13 @@ const Agents = () => {
   useEffect(() => {
     const fetchAgents = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
         const { data, error } = await supabase
           .from('bots')
           .select('*')
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -68,6 +72,28 @@ const Agents = () => {
     };
 
     fetchAgents();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('bots_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bots',
+        },
+        (payload) => {
+          // Refresh the agents list when changes occur
+          fetchAgents();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
