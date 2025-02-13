@@ -56,6 +56,38 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          bot_id: string
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrations: {
         Row: {
           active: boolean
@@ -130,6 +162,7 @@ export type Database = {
         Row: {
           bot_id: string | null
           content: string
+          conversation_id: string | null
           created_at: string
           id: string
           is_from_user: boolean | null
@@ -138,6 +171,7 @@ export type Database = {
         Insert: {
           bot_id?: string | null
           content: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
           is_from_user?: boolean | null
@@ -146,6 +180,7 @@ export type Database = {
         Update: {
           bot_id?: string | null
           content?: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
           is_from_user?: boolean | null
@@ -157,6 +192,13 @@ export type Database = {
             columns: ["bot_id"]
             isOneToOne: false
             referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]

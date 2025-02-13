@@ -83,10 +83,15 @@ const Chat = () => {
       }
 
       setConversations(data || []);
+      
+      // If there are conversations but none is selected, select the most recent one
+      if (data && data.length > 0 && !currentConversation) {
+        setCurrentConversation(data[0].id);
+      }
     };
 
     fetchConversations();
-  }, [agentId]);
+  }, [agentId, currentConversation]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -138,7 +143,10 @@ const Chat = () => {
     if (!agentId) return;
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      toast.error("Você precisa estar logado para criar uma conversa");
+      return;
+    }
 
     const { data: conversation, error } = await supabase
       .from('conversations')
@@ -155,6 +163,7 @@ const Chat = () => {
       return;
     }
 
+    setConversations(prev => [conversation, ...prev]);
     setCurrentConversation(conversation.id);
     setMessages([]);
   };
