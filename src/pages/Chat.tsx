@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -164,13 +165,17 @@ const Chat = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !agentId || !currentConversation) return;
+    if (!newMessage.trim() || !agentId || !currentConversation || isLoading) return;
 
     setIsLoading(true);
+    const messageContent = newMessage; // Guardar o conteúdo antes de limpar
+    setNewMessage(""); // Limpar o input imediatamente após o envio
+
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
       toast.error("Você precisa estar logado para enviar mensagens");
+      setIsLoading(false);
       return;
     }
 
@@ -178,7 +183,7 @@ const Chat = () => {
       const { error: userMessageError } = await supabase
         .from('messages')
         .insert({
-          content: newMessage,
+          content: messageContent,
           bot_id: agentId,
           user_id: session.user.id,
           is_from_user: true,
@@ -193,7 +198,7 @@ const Chat = () => {
         .invoke('chat', {
           body: {
             botId: agentId,
-            message: newMessage,
+            message: messageContent,
             conversationId: currentConversation
           }
         });
@@ -201,8 +206,6 @@ const Chat = () => {
       if (functionError) {
         throw new Error("Erro ao processar mensagem");
       }
-
-      setNewMessage("");
     } catch (error) {
       toast.error(error.message);
     } finally {
