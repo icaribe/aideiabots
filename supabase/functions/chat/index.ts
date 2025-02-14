@@ -25,6 +25,7 @@ serve(async (req) => {
     );
 
     const { botId, message, conversationId } = await req.json();
+    console.log('Received request:', { botId, message, conversationId });
     
     // Fetch bot configuration
     const { data: bot, error: botError } = await supabase
@@ -37,6 +38,8 @@ serve(async (req) => {
       console.error('Error fetching bot:', botError);
       throw new Error('Bot não encontrado');
     }
+
+    console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
 
     let response;
     switch (bot.llm_provider.toLowerCase()) {
@@ -55,6 +58,8 @@ serve(async (req) => {
       default:
         throw new Error('Provedor LLM não suportado');
     }
+
+    console.log('LLM response received:', { response: response.substring(0, 100) + '...' });
 
     // Save bot response to database
     const { error: messageError } = await supabase
@@ -90,6 +95,7 @@ serve(async (req) => {
 });
 
 async function handleOpenAIRequest(message: string, bot: any) {
+  console.log('Making OpenAI request with model:', bot.model);
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -104,6 +110,8 @@ async function handleOpenAIRequest(message: string, bot: any) {
   });
 
   if (!response.ok) {
+    const error = await response.text();
+    console.error('OpenAI API error:', error);
     throw new Error('Erro na chamada à API da OpenAI');
   }
 
@@ -112,6 +120,7 @@ async function handleOpenAIRequest(message: string, bot: any) {
 }
 
 async function handleAnthropicRequest(message: string, bot: any) {
+  console.log('Making Anthropic request with model:', bot.model);
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -126,6 +135,8 @@ async function handleAnthropicRequest(message: string, bot: any) {
   });
 
   if (!response.ok) {
+    const error = await response.text();
+    console.error('Anthropic API error:', error);
     throw new Error('Erro na chamada à API da Anthropic');
   }
 
@@ -134,6 +145,7 @@ async function handleAnthropicRequest(message: string, bot: any) {
 }
 
 async function handleGroqRequest(message: string, bot: any) {
+  console.log('Making Groq request with model:', bot.model);
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -147,6 +159,8 @@ async function handleGroqRequest(message: string, bot: any) {
   });
 
   if (!response.ok) {
+    const error = await response.text();
+    console.error('Groq API error:', error);
     throw new Error('Erro na chamada à API da Groq');
   }
 
@@ -155,6 +169,7 @@ async function handleGroqRequest(message: string, bot: any) {
 }
 
 async function handleGeminiRequest(message: string, bot: any) {
+  console.log('Making Gemini request with model:', bot.model);
   const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
     method: 'POST',
     headers: {
@@ -167,6 +182,8 @@ async function handleGeminiRequest(message: string, bot: any) {
   });
 
   if (!response.ok) {
+    const error = await response.text();
+    console.error('Gemini API error:', error);
     throw new Error('Erro na chamada à API do Gemini');
   }
 
