@@ -18,6 +18,7 @@ export type Database = {
           llm_provider: string
           model: string
           name: string
+          provider: string | null
           updated_at: string | null
           user_id: string
           webhook_url: string | null
@@ -30,6 +31,7 @@ export type Database = {
           llm_provider: string
           model: string
           name: string
+          provider?: string | null
           updated_at?: string | null
           user_id: string
           webhook_url?: string | null
@@ -42,6 +44,7 @@ export type Database = {
           llm_provider?: string
           model?: string
           name?: string
+          provider?: string | null
           updated_at?: string | null
           user_id?: string
           webhook_url?: string | null

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -175,24 +174,40 @@ const Chat = () => {
       return;
     }
 
-    const { error } = await supabase
-      .from('messages')
-      .insert({
-        content: newMessage,
-        bot_id: agentId,
-        user_id: session.user.id,
-        is_from_user: true,
-        conversation_id: currentConversation
-      });
+    try {
+      const { error: userMessageError } = await supabase
+        .from('messages')
+        .insert({
+          content: newMessage,
+          bot_id: agentId,
+          user_id: session.user.id,
+          is_from_user: true,
+          conversation_id: currentConversation
+        });
 
-    if (error) {
-      toast.error("Erro ao enviar mensagem");
+      if (userMessageError) {
+        throw new Error("Erro ao enviar mensagem");
+      }
+
+      const { data: response, error: functionError } = await supabase.functions
+        .invoke('chat', {
+          body: {
+            botId: agentId,
+            message: newMessage,
+            conversationId: currentConversation
+          }
+        });
+
+      if (functionError) {
+        throw new Error("Erro ao processar mensagem");
+      }
+
+      setNewMessage("");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setNewMessage("");
-    setIsLoading(false);
   };
 
   return (

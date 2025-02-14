@@ -1,1 +1,10 @@
+
 project_id = "hmmbolvudsckgzjzzwnr"
+
+[api]
+enabled = true
+url = "https://hmmbolvudsckgzjzzwnr.supabase.co/functions/v1"
+
+[[functions]]
+name = "chat"
+verify_jwt = true
