@@ -41,25 +41,25 @@ serve(async (req) => {
 
     console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
 
+    const systemPrompt = "Você é um assistente útil e amigável.";
     let response;
+
     switch (bot.llm_provider.toLowerCase()) {
       case 'openai':
-        response = await handleOpenAIRequest(message, bot);
+        response = await handleOpenAIRequest(message, systemPrompt, bot);
         break;
       case 'anthropic':
-        response = await handleAnthropicRequest(message, bot);
+        response = await handleAnthropicRequest(message, systemPrompt, bot);
         break;
       case 'groq':
-        response = await handleGroqRequest(message, bot);
+        response = await handleGroqRequest(message, systemPrompt, bot);
         break;
       case 'gemini':
-        response = await handleGeminiRequest(message, bot);
+        response = await handleGeminiRequest(message, systemPrompt, bot);
         break;
       default:
         throw new Error('Provedor LLM não suportado');
     }
-
-    console.log('LLM response received:', { response: response.substring(0, 100) + '...' });
 
     // Save bot response to database
     const { error: messageError } = await supabase
@@ -94,7 +94,7 @@ serve(async (req) => {
   }
 });
 
-async function handleOpenAIRequest(message: string, bot: any) {
+async function handleOpenAIRequest(message: string, systemPrompt: string, bot: any) {
   console.log('Making OpenAI request with model:', bot.model);
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -104,22 +104,84 @@ async function handleOpenAIRequest(message: string, bot: any) {
     },
     body: JSON.stringify({
       model: bot.model,
-      messages: [{ role: 'user', content: message }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message }
+      ],
       temperature: 0.7,
+      max_tokens: 1000,
     }),
   });
 
   if (!response.ok) {
     const error = await response.text();
     console.error('OpenAI API error:', error);
-    throw new Error('Erro na chamada à API da OpenAI');
+    throw new Error(`OpenAI API error: ${error}`);
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  console.log('OpenAI response:', data);
+  return data.choices[0]?.message?.content || 'No response generated';
 }
 
-async function handleAnthropicRequest(message: string, bot: any) {
+async function handleGroqRequest(message: string, systemPrompt: string, bot: any) {
+  console.log('Making Groq request with model:', bot.model);
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${bot.api_key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: bot.model || 'mixtral-8x7b-32768',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Groq API error:', error);
+    throw new Error(`Groq API error: ${error}`);
+  }
+
+  const data = await response.json();
+  console.log('Groq response:', data);
+  return data.choices[0]?.message?.content || 'No response generated';
+}
+
+async function handleGeminiRequest(message: string, systemPrompt: string, bot: any) {
+  console.log('Making Gemini request with model:', bot.model);
+  const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': bot.api_key,
+    },
+    body: JSON.stringify({
+      contents: [
+        { parts: [{ text: systemPrompt }] },
+        { parts: [{ text: message }] }
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Gemini API error:', error);
+    throw new Error(`Gemini API error: ${error}`);
+  }
+
+  const data = await response.json();
+  console.log('Gemini response:', data);
+  return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
+}
+
+async function handleAnthropicRequest(message: string, systemPrompt: string, bot: any) {
   console.log('Making Anthropic request with model:', bot.model);
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -130,63 +192,20 @@ async function handleAnthropicRequest(message: string, bot: any) {
     },
     body: JSON.stringify({
       model: bot.model,
-      messages: [{ role: 'user', content: message }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message }
+      ],
     }),
   });
 
   if (!response.ok) {
     const error = await response.text();
     console.error('Anthropic API error:', error);
-    throw new Error('Erro na chamada à API da Anthropic');
+    throw new Error(`Anthropic API error: ${error}`);
   }
 
   const data = await response.json();
-  return data.content[0].text;
-}
-
-async function handleGroqRequest(message: string, bot: any) {
-  console.log('Making Groq request with model:', bot.model);
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${bot.api_key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: bot.model,
-      messages: [{ role: 'user', content: message }],
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Groq API error:', error);
-    throw new Error('Erro na chamada à API da Groq');
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-async function handleGeminiRequest(message: string, bot: any) {
-  console.log('Making Gemini request with model:', bot.model);
-  const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': bot.api_key,
-    },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: message }] }],
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Gemini API error:', error);
-    throw new Error('Erro na chamada à API do Gemini');
-  }
-
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  console.log('Anthropic response:', data);
+  return data.content[0]?.text || 'No response generated';
 }
