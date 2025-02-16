@@ -1,178 +1,38 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, X } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Step, IntentConfig } from "@/types/agent";
+
+import { useParams } from "react-router-dom";
 import { StepHeader } from "@/components/agent/StepHeader";
 import { TypeStep } from "@/components/agent/TypeStep";
 import { LLMStep } from "@/components/agent/LLMStep";
 import { ConfigStep } from "@/components/agent/ConfigStep";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { EditAgentHeader } from "@/components/agent/EditAgentHeader";
+import { DeleteAgentButton } from "@/components/agent/DeleteAgentButton";
+import { useEditAgent } from "@/hooks/useEditAgent";
 
 const EditAgent = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [currentStep, setCurrentStep] = useState<Step>("type");
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [agentName, setAgentName] = useState("");
-  const [agentDescription, setAgentDescription] = useState("");
-  const [intents, setIntents] = useState<IntentConfig[]>([{
-    name: "",
-    description: "",
-    examples: [""],
-    webhookUrl: ""
-  }]);
-
-  useEffect(() => {
-    const fetchAgent = async () => {
-      try {
-        const { data: agent, error } = await supabase
-          .from('bots')
-          .select(`
-            *,
-            intents (*)
-          `)
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
-
-        if (agent) {
-          setSelectedType(agent.provider || 'custom');
-          setSelectedProvider(agent.llm_provider);
-          setSelectedModel(agent.model);
-          setAgentName(agent.name);
-          setAgentDescription(agent.description || '');
-          
-          if (agent.intents && agent.intents.length > 0) {
-            setIntents(agent.intents.map((intent: any) => ({
-              name: intent.name,
-              description: intent.description || '',
-              examples: [''],
-              webhookUrl: intent.webhook_url
-            })));
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao carregar agente:', error);
-        toast.error("Erro ao carregar dados do agente");
-      }
-    };
-
-    if (id) {
-      fetchAgent();
-    }
-  }, [id]);
-
-  const handleUpdateAgent = async () => {
-    if (!agentName || !selectedProvider || !selectedModel) {
-      toast.error("Por favor, preencha todos os campos obrigatórios");
-      return;
-    }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error("Você precisa estar logado para atualizar um agente");
-        navigate("/");
-        return;
-      }
-
-      const { error: botError } = await supabase
-        .from('bots')
-        .update({
-          name: agentName,
-          description: agentDescription,
-          llm_provider: selectedProvider,
-          model: selectedModel,
-          provider: selectedType,
-          webhook_url: intents[0]?.webhookUrl || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (botError) {
-        console.error("Erro ao atualizar agente:", botError);
-        toast.error("Erro ao atualizar agente. Por favor, tente novamente.");
-        return;
-      }
-
-      if (intents.length > 0) {
-        const { error: deleteIntentsError } = await supabase
-          .from('intents')
-          .delete()
-          .eq('bot_id', id);
-
-        if (deleteIntentsError) {
-          console.error("Erro ao atualizar intents:", deleteIntentsError);
-        }
-
-        const intentsToInsert = intents.map(intent => ({
-          bot_id: id,
-          name: intent.name,
-          description: intent.description,
-          webhook_url: intent.webhookUrl
-        }));
-
-        const { error: intentsError } = await supabase
-          .from('intents')
-          .insert(intentsToInsert);
-
-        if (intentsError) {
-          console.error("Erro ao criar intents:", intentsError);
-        }
-      }
-
-      toast.success("Agente atualizado com sucesso!");
-      navigate("/agents");
-    } catch (error) {
-      console.error("Erro ao atualizar agente:", error);
-      toast.error("Erro ao atualizar agente. Tente novamente.");
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      const { error } = await supabase
-        .from('bots')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast.success("Agente excluído com sucesso!");
-      navigate("/agents");
-    } catch (error) {
-      console.error('Erro ao excluir agente:', error);
-      toast.error("Erro ao excluir agente. Por favor, tente novamente.");
-    }
-  };
+  const {
+    currentStep,
+    setCurrentStep,
+    selectedType,
+    setSelectedType,
+    selectedProvider,
+    setSelectedProvider,
+    selectedModel,
+    setSelectedModel,
+    agentName,
+    setAgentName,
+    agentDescription,
+    setAgentDescription,
+    intents,
+    setIntents,
+    handleUpdateAgent,
+    handleDelete
+  } = useEditAgent(id);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <Button 
-            variant="ghost" 
-            className="gap-2"
-            onClick={() => navigate(-1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/agents")}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
+        <EditAgentHeader />
         <StepHeader currentStep={currentStep} />
 
         <div className="max-w-2xl mx-auto">
@@ -212,31 +72,7 @@ const EditAgent = () => {
         </div>
 
         <div className="mt-8 border-t pt-8">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full">
-                Excluir Agente
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Isso excluirá permanentemente o agente
-                  e todos os seus dados associados.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={handleDelete}
-                >
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <DeleteAgentButton onDelete={handleDelete} />
         </div>
       </div>
     </div>

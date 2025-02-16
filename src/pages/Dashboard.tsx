@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -71,7 +70,6 @@ const Dashboard = () => {
           return;
         }
 
-        // Convert the data to match the Bot type
         const formattedBots: Bot[] = (data || []).map(bot => ({
           ...bot,
           type: 'Custom', // Default type for existing bots
@@ -88,6 +86,10 @@ const Dashboard = () => {
     fetchAgents();
   }, []);
 
+  const handleAgentClick = (id: string) => {
+    navigate(`/edit-agent/${id}`);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
@@ -96,7 +98,7 @@ const Dashboard = () => {
           <DashboardHeader timeFilter={timeFilter} setTimeFilter={setTimeFilter} />
           <MetricsCards {...metrics} />
           <ChartCard data={chartData} />
-          <AgentsList agents={agents} />
+          <AgentsList agents={agents} onAgentClick={handleAgentClick} />
         </main>
       </div>
     </SidebarProvider>
