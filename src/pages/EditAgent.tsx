@@ -4,6 +4,7 @@ import { StepHeader } from "@/components/agent/StepHeader";
 import { TypeStep } from "@/components/agent/TypeStep";
 import { LLMStep } from "@/components/agent/LLMStep";
 import { ConfigStep } from "@/components/agent/ConfigStep";
+import { IntegrationsStep } from "@/components/agent/IntegrationsStep";
 import { EditAgentHeader } from "@/components/agent/EditAgentHeader";
 import { DeleteAgentButton } from "@/components/agent/DeleteAgentButton";
 import { useEditAgent } from "@/hooks/useEditAgent";
@@ -28,6 +29,8 @@ const EditAgent = () => {
     handleUpdateAgent,
     handleDelete
   } = useEditAgent(id);
+
+  if (!id) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -66,7 +69,17 @@ const EditAgent = () => {
               onWhatsappNumberChange={() => {}}
               onIntentsChange={setIntents}
               onBack={() => setCurrentStep("llm")}
-              onSubmit={handleUpdateAgent}
+              onSubmit={() => {
+                handleUpdateAgent();
+                setCurrentStep("integrations");
+              }}
+            />
+          )}
+
+          {currentStep === "integrations" && (
+            <IntegrationsStep
+              botId={id}
+              onBack={() => setCurrentStep("config")}
             />
           )}
         </div>

@@ -21,4 +21,4 @@ export type IntentConfig = {
   webhookUrl: string;
 };
 
-export type Step = "type" | "llm" | "config";
+export type Step = "type" | "llm" | "config" | "integrations";
