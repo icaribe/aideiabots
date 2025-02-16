@@ -20,7 +20,6 @@ const EditAgent = () => {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [agentName, setAgentName] = useState("");
   const [agentDescription, setAgentDescription] = useState("");
-  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [intents, setIntents] = useState<IntentConfig[]>([{
     name: "",
     description: "",
@@ -43,18 +42,17 @@ const EditAgent = () => {
         if (error) throw error;
 
         if (agent) {
-          setSelectedType(agent.type || 'custom');
+          setSelectedType(agent.provider || 'custom');
           setSelectedProvider(agent.llm_provider);
           setSelectedModel(agent.model);
           setAgentName(agent.name);
           setAgentDescription(agent.description || '');
-          setWhatsappNumber(agent.whatsapp_number || '');
           
           if (agent.intents && agent.intents.length > 0) {
             setIntents(agent.intents.map((intent: any) => ({
               name: intent.name,
               description: intent.description || '',
-              examples: [''], // You might want to add a column for examples in your database
+              examples: [''],
               webhookUrl: intent.webhook_url
             })));
           }
@@ -93,6 +91,7 @@ const EditAgent = () => {
           description: agentDescription,
           llm_provider: selectedProvider,
           model: selectedModel,
+          provider: selectedType,
           webhook_url: intents[0]?.webhookUrl || null,
           updated_at: new Date().toISOString()
         })
@@ -187,11 +186,11 @@ const EditAgent = () => {
             <ConfigStep
               agentName={agentName}
               agentDescription={agentDescription}
-              whatsappNumber={whatsappNumber}
+              whatsappNumber=""
               intents={intents}
               onAgentNameChange={setAgentName}
               onAgentDescriptionChange={setAgentDescription}
-              onWhatsappNumberChange={setWhatsappNumber}
+              onWhatsappNumberChange={() => {}}
               onIntentsChange={setIntents}
               onBack={() => setCurrentStep("llm")}
               onSubmit={handleUpdateAgent}
