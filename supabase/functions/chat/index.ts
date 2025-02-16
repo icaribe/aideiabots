@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -40,6 +39,11 @@ serve(async (req) => {
     }
 
     console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
+
+    // Se o provedor for Groq, use a chave API do ambiente
+    if (bot.llm_provider.toLowerCase() === 'groq') {
+      bot.api_key = Deno.env.get('GROQ_API_KEY') ?? '';
+    }
 
     const systemPrompt = "Você é um assistente útil e amigável.";
     let response;
@@ -124,34 +128,33 @@ async function handleOpenAIRequest(message: string, systemPrompt: string, bot: a
   return data.choices[0]?.message?.content || 'No response generated';
 }
 
-async function handleGroqRequest(message: string, systemPrompt: string, bot: any) {
-  console.log('Making Groq request with model:', bot.model);
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+async function handleAnthropicRequest(message: string, systemPrompt: string, bot: any) {
+  console.log('Making Anthropic request with model:', bot.model);
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${bot.api_key}`,
+      'x-api-key': bot.api_key,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: bot.model || 'mixtral-8x7b-32768',
+      model: bot.model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
-      temperature: 0.7,
-      max_tokens: 1000,
     }),
   });
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('Groq API error:', error);
-    throw new Error(`Groq API error: ${error}`);
+    console.error('Anthropic API error:', error);
+    throw new Error(`Anthropic API error: ${error}`);
   }
 
   const data = await response.json();
-  console.log('Groq response:', data);
-  return data.choices[0]?.message?.content || 'No response generated';
+  console.log('Anthropic response:', data);
+  return data.content[0]?.text || 'No response generated';
 }
 
 async function handleGeminiRequest(message: string, systemPrompt: string, bot: any) {
@@ -181,31 +184,36 @@ async function handleGeminiRequest(message: string, systemPrompt: string, bot: a
   return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
 }
 
-async function handleAnthropicRequest(message: string, systemPrompt: string, bot: any) {
-  console.log('Making Anthropic request with model:', bot.model);
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+async function handleGroqRequest(message: string, systemPrompt: string, bot: any) {
+  if (!bot.api_key) {
+    throw new Error('Chave API do Groq não configurada');
+  }
+
+  console.log('Making Groq request with model:', bot.model);
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': bot.api_key,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${bot.api_key}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: bot.model,
+      model: bot.model || 'mixtral-8x7b-32768',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
+      temperature: 0.7,
+      max_tokens: 1000,
     }),
   });
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('Anthropic API error:', error);
-    throw new Error(`Anthropic API error: ${error}`);
+    console.error('Groq API error:', error);
+    throw new Error(`Erro na API do Groq: ${error}`);
   }
 
   const data = await response.json();
-  console.log('Anthropic response:', data);
-  return data.content[0]?.text || 'No response generated';
+  console.log('Groq response:', data);
+  return data.choices[0]?.message?.content || 'No response generated';
 }
