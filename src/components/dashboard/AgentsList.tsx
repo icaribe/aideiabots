@@ -1,7 +1,27 @@
 
-import { Bot } from "lucide-react";
+import { Bot, Edit, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Agent = {
   id: string;
@@ -14,10 +34,28 @@ type Agent = {
 
 type AgentsListProps = {
   agents: Agent[];
+  onDelete?: (id: string) => void;
 };
 
-export const AgentsList = ({ agents }: AgentsListProps) => {
+export const AgentsList = ({ agents, onDelete }: AgentsListProps) => {
   const navigate = useNavigate();
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('bots')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Agente excluído com sucesso!");
+      if (onDelete) onDelete(id);
+    } catch (error) {
+      console.error('Erro ao excluir agente:', error);
+      toast.error("Erro ao excluir agente. Por favor, tente novamente.");
+    }
+  };
 
   return (
     <>
@@ -36,8 +74,7 @@ export const AgentsList = ({ agents }: AgentsListProps) => {
           {agents.map((agent) => (
             <Card 
               key={agent.id} 
-              className="hover:border-purple-200 transition-colors cursor-pointer"
-              onClick={() => navigate(`/chat/${agent.id}`)}
+              className="hover:border-purple-200 transition-colors"
             >
               <CardHeader>
                 <CardTitle className="text-lg">{agent.name}</CardTitle>
@@ -49,6 +86,53 @@ export const AgentsList = ({ agents }: AgentsListProps) => {
                   <span>{agent.type}</span>
                 </div>
               </CardContent>
+              <CardFooter className="flex justify-between">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/edit-agent/${agent.id}`)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Isso excluirá permanentemente o agente
+                          e todos os seus dados associados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(agent.id)}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate(`/chat/${agent.id}`)}
+                >
+                  Conversar
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>

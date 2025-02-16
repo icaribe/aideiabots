@@ -40,40 +40,39 @@ const Agents = () => {
     checkAuth();
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchAgents = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+  const fetchAgents = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-        const { data, error } = await supabase
-          .from('bots')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('bots')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Erro ao buscar agentes:', error);
-          toast.error("Erro ao carregar agentes. Verifique se você está conectado ao Supabase.");
-          return;
-        }
-
-        const formattedBots: Bot[] = (data || []).map(bot => ({
-          ...bot,
-          type: 'Custom',
-          whatsappNumber: '',
-        })) as Bot[];
-
-        setAgents(formattedBots);
-      } catch (error) {
+      if (error) {
         console.error('Erro ao buscar agentes:', error);
-        toast.error("Erro ao carregar agentes. Por favor, tente novamente.");
+        toast.error("Erro ao carregar agentes. Verifique se você está conectado ao Supabase.");
+        return;
       }
-    };
 
+      const formattedBots: Bot[] = (data || []).map(bot => ({
+        ...bot,
+        type: 'Custom',
+        whatsappNumber: '',
+      })) as Bot[];
+
+      setAgents(formattedBots);
+    } catch (error) {
+      console.error('Erro ao buscar agentes:', error);
+      toast.error("Erro ao carregar agentes. Por favor, tente novamente.");
+    }
+  };
+
+  useEffect(() => {
     fetchAgents();
 
-    // Set up real-time subscription
     const channel = supabase
       .channel('bots_changes')
       .on(
@@ -83,18 +82,21 @@ const Agents = () => {
           schema: 'public',
           table: 'bots',
         },
-        (payload) => {
-          // Refresh the agents list when changes occur
+        () => {
           fetchAgents();
         }
       )
       .subscribe();
 
-    // Cleanup subscription
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleDelete = async (id: string) => {
+    const updatedAgents = agents.filter(agent => agent.id !== id);
+    setAgents(updatedAgents);
+  };
 
   return (
     <SidebarProvider>
@@ -108,7 +110,7 @@ const Agents = () => {
               Criar Agente
             </Button>
           </div>
-          <AgentsList agents={agents} />
+          <AgentsList agents={agents} onDelete={handleDelete} />
         </main>
       </div>
     </SidebarProvider>
