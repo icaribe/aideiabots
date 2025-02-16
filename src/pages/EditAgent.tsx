@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { StepHeader } from "@/components/agent/StepHeader";
 import { TypeStep } from "@/components/agent/TypeStep";
 import { LLMStep } from "@/components/agent/LLMStep";
 import { ConfigStep } from "@/components/agent/ConfigStep";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 const EditAgent = () => {
   const navigate = useNavigate();
@@ -83,7 +83,6 @@ const EditAgent = () => {
         return;
       }
 
-      // Update the bot
       const { error: botError } = await supabase
         .from('bots')
         .update({
@@ -103,9 +102,7 @@ const EditAgent = () => {
         return;
       }
 
-      // Update intents
       if (intents.length > 0) {
-        // First, delete existing intents
         const { error: deleteIntentsError } = await supabase
           .from('intents')
           .delete()
@@ -115,7 +112,6 @@ const EditAgent = () => {
           console.error("Erro ao atualizar intents:", deleteIntentsError);
         }
 
-        // Then, insert new intents
         const intentsToInsert = intents.map(intent => ({
           bot_id: id,
           name: intent.name,
@@ -137,6 +133,23 @@ const EditAgent = () => {
     } catch (error) {
       console.error("Erro ao atualizar agente:", error);
       toast.error("Erro ao atualizar agente. Tente novamente.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('bots')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Agente excluído com sucesso!");
+      navigate("/agents");
+    } catch (error) {
+      console.error('Erro ao excluir agente:', error);
+      toast.error("Erro ao excluir agente. Por favor, tente novamente.");
     }
   };
 
@@ -196,6 +209,34 @@ const EditAgent = () => {
               onSubmit={handleUpdateAgent}
             />
           )}
+        </div>
+
+        <div className="mt-8 border-t pt-8">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="w-full">
+                Excluir Agente
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente o agente
+                  e todos os seus dados associados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleDelete}
+                >
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

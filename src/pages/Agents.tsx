@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -98,6 +97,10 @@ const Agents = () => {
     setAgents(updatedAgents);
   };
 
+  const handleAgentClick = (id: string) => {
+    navigate(`/edit-agent/${id}`);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
@@ -110,7 +113,7 @@ const Agents = () => {
               Criar Agente
             </Button>
           </div>
-          <AgentsList agents={agents} onDelete={handleDelete} />
+          <AgentsList agents={agents} onAgentClick={handleAgentClick} />
         </main>
       </div>
     </SidebarProvider>
