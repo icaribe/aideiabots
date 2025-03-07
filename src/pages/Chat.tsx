@@ -80,7 +80,10 @@ const Chat = () => {
               Selecione um agente para iniciar uma conversa
             </p>
           </div>
-          <AgentsList agents={agents} onAgentClick={handleAgentClick} />
+          <AgentsList 
+            agents={agents} 
+            onAgentClick={handleAgentClick}
+          />
         </main>
       </div>
     </SidebarProvider>

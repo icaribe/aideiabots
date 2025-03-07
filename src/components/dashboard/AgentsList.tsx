@@ -1,12 +1,14 @@
 
-import { Bot } from "lucide-react";
+import { Bot, Edit, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type Agent = {
   id: string;
@@ -18,10 +20,22 @@ type Agent = {
 
 type AgentsListProps = {
   agents: Agent[];
-  onAgentClick: (id: string) => void;
+  onAgentClick?: (id: string) => void;
 };
 
 export const AgentsList = ({ agents, onAgentClick }: AgentsListProps) => {
+  const navigate = useNavigate();
+
+  const handleEditClick = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/edit-agent/${id}`);
+  };
+
+  const handleChatClick = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/chat/${id}`);
+  };
+
   return (
     <>
       <h2 className="text-xl font-bold mb-6">Seus Agentes</h2>
@@ -40,7 +54,7 @@ export const AgentsList = ({ agents, onAgentClick }: AgentsListProps) => {
             <Card 
               key={agent.id} 
               className="hover:border-purple-200 transition-colors cursor-pointer"
-              onClick={() => onAgentClick(agent.id)}
+              onClick={() => onAgentClick && onAgentClick(agent.id)}
             >
               <CardHeader>
                 <CardTitle className="text-lg">{agent.name}</CardTitle>
@@ -52,6 +66,24 @@ export const AgentsList = ({ agents, onAgentClick }: AgentsListProps) => {
                   <span>{agent.type}</span>
                 </div>
               </CardContent>
+              <CardFooter className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={(e) => handleEditClick(agent.id, e)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={(e) => handleChatClick(agent.id, e)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Chat
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>
