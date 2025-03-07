@@ -215,27 +215,41 @@ const ChatConversation = () => {
       if (response.error) {
         console.error("Error processing message:", response.error);
         
+        // Determine error message based on error content
+        let errorMessage = "Erro desconhecido ao processar mensagem";
+        
+        if (response.error.message) {
+          errorMessage = response.error.message;
+          
+          // Adiciona instruções específicas se o erro estiver relacionado à chave da API
+          if (errorMessage.includes("API") && errorMessage.includes("Groq")) {
+            errorMessage += ". Por favor, adicione a chave API do Groq nas configurações do projeto.";
+          }
+        }
+        
         // Add error message to UI
-        const errorMessage: Message = {
+        const errorResponseMessage: Message = {
           id: crypto.randomUUID(),
-          content: response.error.message || "Erro desconhecido ao processar mensagem",
+          content: errorMessage,
           is_from_user: false,
           conversation_id: conversation.id,
           created_at: new Date().toISOString(),
           error: true
         };
         
-        setMessages(prev => [...prev, errorMessage]);
+        setMessages(prev => [...prev, errorResponseMessage]);
         
         // Save error message to database
-        await supabase.from('messages').insert({
-          conversation_id: conversation.id,
-          content: response.error.message || "Erro desconhecido ao processar mensagem",
-          is_from_user: false,
-          user_id: session.user.id,
-          bot_id: agentId,
-          error: true
-        });
+        await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            content: errorMessage,
+            is_from_user: false,
+            user_id: session.user.id,
+            bot_id: agentId,
+            error: true
+          });
         
         return;
       }

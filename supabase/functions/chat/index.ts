@@ -41,13 +41,35 @@ serve(async (req) => {
 
     console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
 
-    // Se o provedor for Groq, use a chave API do ambiente ou a chave do bot
-    const groqApiKey = Deno.env.get('GROQ_API_KEY');
-    if (bot.llm_provider.toLowerCase() === 'groq') {
-      if (!groqApiKey && !bot.api_key) {
-        throw new Error('Chave API do Groq não está configurada. Por favor, configure a chave API nas configurações do projeto.');
-      }
-      bot.api_key = groqApiKey || bot.api_key;
+    // Verifica e configura a chave API do provedor LLM
+    let apiKey = null;
+    switch (bot.llm_provider.toLowerCase()) {
+      case 'groq':
+        apiKey = Deno.env.get('GROQ_API_KEY') || bot.api_key;
+        if (!apiKey) {
+          throw new Error('Chave API do Groq não está configurada. Por favor, configure a chave API nas configurações do projeto.');
+        }
+        break;
+      case 'openai':
+        apiKey = Deno.env.get('OPENAI_API_KEY') || bot.api_key;
+        if (!apiKey) {
+          throw new Error('Chave API da OpenAI não está configurada. Por favor, configure a chave API nas configurações do projeto.');
+        }
+        break;
+      case 'anthropic':
+        apiKey = Deno.env.get('ANTHROPIC_API_KEY') || bot.api_key;
+        if (!apiKey) {
+          throw new Error('Chave API da Anthropic não está configurada. Por favor, configure a chave API nas configurações do projeto.');
+        }
+        break;
+      case 'gemini':
+        apiKey = Deno.env.get('GOOGLE_API_KEY') || bot.api_key;
+        if (!apiKey) {
+          throw new Error('Chave API do Google não está configurada. Por favor, configure a chave API nas configurações do projeto.');
+        }
+        break;
+      default:
+        throw new Error(`Provedor LLM não suportado: ${bot.llm_provider}`);
     }
 
     const systemPrompt = bot.description || "Você é um assistente útil e amigável.";
@@ -55,16 +77,16 @@ serve(async (req) => {
 
     switch (bot.llm_provider.toLowerCase()) {
       case 'openai':
-        response = await handleOpenAIRequest(message, systemPrompt, bot);
+        response = await handleOpenAIRequest(message, systemPrompt, { ...bot, api_key: apiKey });
         break;
       case 'anthropic':
-        response = await handleAnthropicRequest(message, systemPrompt, bot);
+        response = await handleAnthropicRequest(message, systemPrompt, { ...bot, api_key: apiKey });
         break;
       case 'groq':
-        response = await handleGroqRequest(message, systemPrompt, bot);
+        response = await handleGroqRequest(message, systemPrompt, { ...bot, api_key: apiKey });
         break;
       case 'gemini':
-        response = await handleGeminiRequest(message, systemPrompt, bot);
+        response = await handleGeminiRequest(message, systemPrompt, { ...bot, api_key: apiKey });
         break;
       default:
         throw new Error('Provedor LLM não suportado');
@@ -108,10 +130,6 @@ serve(async (req) => {
 async function handleOpenAIRequest(message, systemPrompt, bot) {
   console.log('Making OpenAI request with model:', bot.model);
   
-  if (!bot.api_key) {
-    throw new Error('Chave API da OpenAI não está configurada');
-  }
-  
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -143,10 +161,6 @@ async function handleOpenAIRequest(message, systemPrompt, bot) {
 async function handleAnthropicRequest(message, systemPrompt, bot) {
   console.log('Making Anthropic request with model:', bot.model);
   
-  if (!bot.api_key) {
-    throw new Error('Chave API da Anthropic não está configurada');
-  }
-  
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -177,10 +191,6 @@ async function handleAnthropicRequest(message, systemPrompt, bot) {
 async function handleGeminiRequest(message, systemPrompt, bot) {
   console.log('Making Gemini request with model:', bot.model);
   
-  if (!bot.api_key) {
-    throw new Error('Chave API do Google não está configurada');
-  }
-  
   const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
     method: 'POST',
     headers: {
@@ -207,11 +217,8 @@ async function handleGeminiRequest(message, systemPrompt, bot) {
 }
 
 async function handleGroqRequest(message, systemPrompt, bot) {
-  if (!bot.api_key) {
-    throw new Error('Chave API do Groq não está configurada');
-  }
-
   console.log('Making Groq request with model:', bot.model);
+  
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
