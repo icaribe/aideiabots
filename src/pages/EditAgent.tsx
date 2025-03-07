@@ -24,6 +24,8 @@ const EditAgent = () => {
     setAgentName,
     agentDescription,
     setAgentDescription,
+    whatsappNumber,
+    setWhatsappNumber,
     intents,
     setIntents,
     handleUpdateAgent,
@@ -62,11 +64,11 @@ const EditAgent = () => {
             <ConfigStep
               agentName={agentName}
               agentDescription={agentDescription}
-              whatsappNumber=""
+              whatsappNumber={whatsappNumber}
               intents={intents}
               onAgentNameChange={setAgentName}
               onAgentDescriptionChange={setAgentDescription}
-              onWhatsappNumberChange={() => {}}
+              onWhatsappNumberChange={setWhatsappNumber}
               onIntentsChange={setIntents}
               onBack={() => setCurrentStep("llm")}
               onSubmit={() => {

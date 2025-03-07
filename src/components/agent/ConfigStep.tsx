@@ -77,7 +77,7 @@ export const ConfigStep = ({
   };
 
   const handleSubmit = () => {
-    if (!agentName || !whatsappNumber || intents.some(intent => !intent.name || !intent.webhookUrl)) {
+    if (!agentName || intents.some(intent => !intent.name)) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
@@ -96,6 +96,7 @@ export const ConfigStep = ({
               value={agentName}
               onChange={(e) => onAgentNameChange(e.target.value)}
               placeholder="Ex: Assistente de Vendas"
+              required
             />
           </div>
           
@@ -111,6 +112,7 @@ export const ConfigStep = ({
           <div>
             <Label>Número do WhatsApp</Label>
             <Input 
+              type="text"
               value={whatsappNumber}
               onChange={(e) => onWhatsappNumberChange(e.target.value)}
               placeholder="Ex: +5511999999999"
@@ -141,6 +143,7 @@ export const ConfigStep = ({
                     value={intent.name}
                     onChange={(e) => handleUpdateIntent(intentIndex, "name", e.target.value)}
                     placeholder="Ex: solicitar_orcamento"
+                    required
                   />
                 </div>
                 
@@ -224,7 +227,7 @@ export const ConfigStep = ({
           className="bg-teal-500 hover:bg-teal-600"
           onClick={handleSubmit}
         >
-          Criar Agente
+          Atualizar Agente
         </Button>
       </div>
     </div>

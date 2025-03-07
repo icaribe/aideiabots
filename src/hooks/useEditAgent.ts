@@ -13,6 +13,7 @@ export const useEditAgent = (id: string | undefined) => {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [agentName, setAgentName] = useState("");
   const [agentDescription, setAgentDescription] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [intents, setIntents] = useState<IntentConfig[]>([{
     name: "",
     description: "",
@@ -40,13 +41,14 @@ export const useEditAgent = (id: string | undefined) => {
           setSelectedModel(agent.model);
           setAgentName(agent.name);
           setAgentDescription(agent.description || '');
+          setWhatsappNumber(agent.whatsapp_number || '');
           
           if (agent.intents && agent.intents.length > 0) {
             setIntents(agent.intents.map((intent: any) => ({
               name: intent.name,
               description: intent.description || '',
-              examples: [''],
-              webhookUrl: intent.webhook_url
+              examples: intent.examples || [''],
+              webhookUrl: intent.webhook_url || ''
             })));
           }
         }
@@ -85,6 +87,7 @@ export const useEditAgent = (id: string | undefined) => {
           model: selectedModel,
           provider: selectedType,
           webhook_url: intents[0]?.webhookUrl || null,
+          whatsapp_number: whatsappNumber,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -107,7 +110,8 @@ export const useEditAgent = (id: string | undefined) => {
           bot_id: id,
           name: intent.name,
           description: intent.description,
-          webhook_url: intent.webhookUrl
+          webhook_url: intent.webhookUrl,
+          examples: intent.examples
         }));
 
         const { error: intentsError } = await supabase
@@ -157,6 +161,8 @@ export const useEditAgent = (id: string | undefined) => {
     setAgentName,
     agentDescription,
     setAgentDescription,
+    whatsappNumber,
+    setWhatsappNumber,
     intents,
     setIntents,
     handleUpdateAgent,
