@@ -1,53 +1,45 @@
 
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, Plus } from "lucide-react";
-import { format } from "date-fns";
-
-type Conversation = {
-  id: string;
-  title: string;
-  created_at: string;
-};
+import { cn } from "@/lib/utils";
+import { Conversation } from "@/types/chat";
 
 type ConversationListProps = {
   conversations: Conversation[];
-  currentConversation: string | null;
-  onConversationSelect: (id: string) => void;
-  onNewConversation: () => void;
-  onBack: () => void;
+  activeConversationId?: string;
+  onSelect: (conversation: Conversation) => void;
 };
 
 export const ConversationList = ({
   conversations,
-  currentConversation,
-  onConversationSelect,
-  onNewConversation,
-  onBack,
+  activeConversationId,
+  onSelect,
 }: ConversationListProps) => {
+  if (conversations.length === 0) {
+    return (
+      <div className="py-4 text-center text-gray-500">
+        Nenhuma conversa encontrada
+      </div>
+    );
+  }
+
   return (
-    <div className="w-64 bg-white border-r flex flex-col">
-      <div className="p-4 border-b flex justify-between items-center">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button onClick={onNewConversation}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Conversa
-        </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {conversations.map((conv) => (
-          <div
-            key={conv.id}
-            className={`p-3 rounded-lg mb-2 cursor-pointer hover:bg-gray-100 ${
-              currentConversation === conv.id ? "bg-gray-100" : ""
-            }`}
-            onClick={() => onConversationSelect(conv.id)}
-          >
-            {conv.title}
+    <div className="space-y-2">
+      {conversations.map((conversation) => (
+        <button
+          key={conversation.id}
+          className={cn(
+            "w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors",
+            conversation.id === activeConversationId && "bg-purple-100"
+          )}
+          onClick={() => onSelect(conversation)}
+        >
+          <div className="truncate font-medium">
+            {conversation.title}
           </div>
-        ))}
-      </div>
+          <div className="text-xs text-gray-500">
+            {new Date(conversation.created_at).toLocaleDateString()}
+          </div>
+        </button>
+      ))}
     </div>
   );
 };

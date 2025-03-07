@@ -1,34 +1,48 @@
 
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SendHorizontal } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
-type MessageInputProps = {
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  isLoading: boolean;
+export type MessageInputProps = {
+  onSend: (content: string) => void;
+  disabled?: boolean;
 };
 
-export const MessageInput = ({
-  value,
-  onChange,
-  onSubmit,
-  isLoading,
-}: MessageInputProps) => {
+export const MessageInput = ({ onSend, disabled = false }: MessageInputProps) => {
+  const [message, setMessage] = useState("");
+
+  const handleSend = () => {
+    if (message.trim()) {
+      onSend(message);
+      setMessage("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <form onSubmit={onSubmit} className="p-4 border-t bg-white">
-      <div className="max-w-3xl mx-auto flex gap-2">
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Digite sua mensagem..."
-          disabled={isLoading}
-        />
-        <Button type="submit" disabled={isLoading}>
-          <SendHorizontal className="h-4 w-4" />
-        </Button>
-      </div>
-    </form>
+    <div className="flex items-end gap-2">
+      <Textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Digite sua mensagem..."
+        className="resize-none min-h-[80px]"
+        disabled={disabled}
+      />
+      <Button
+        onClick={handleSend}
+        disabled={!message.trim() || disabled}
+        size="icon"
+      >
+        <Send className="h-4 w-4" />
+      </Button>
+    </div>
   );
 };

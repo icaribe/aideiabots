@@ -1,271 +1,302 @@
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Bot, ChevronLeft, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { ConversationList } from "@/components/chat/ConversationList";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  created_at: string;
-};
-
-type Conversation = {
-  id: string;
-  title: string;
-  created_at: string;
-};
+import { ConversationList } from "@/components/chat/ConversationList";
+import { Message, Conversation } from "@/types/chat";
 
 const ChatConversation = () => {
   const { agentId } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
-  const [workspace] = useState("Meu Workspace");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<string | null>(null);
+  const [agent, setAgent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [botName, setBotName] = useState("Agente");
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [workspace] = useState("Meu Workspace");
 
-  // Buscar informações do bot
+  // Fetch agent details
   useEffect(() => {
-    const fetchBotInfo = async () => {
-      if (!agentId) return;
-      
+    const fetchAgent = async () => {
       try {
+        if (!agentId) return;
+
         const { data, error } = await supabase
           .from('bots')
-          .select('name')
+          .select('*')
           .eq('id', agentId)
           .single();
-        
-        if (error) throw error;
-        if (data) setBotName(data.name);
-      } catch (error) {
-        console.error('Erro ao buscar informações do bot:', error);
-      }
-    };
-    
-    fetchBotInfo();
-  }, [agentId]);
 
-  // Buscar conversas
-  useEffect(() => {
-    const fetchConversations = async () => {
-      if (!agentId) return;
-      
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          navigate("/");
+        if (error) {
+          console.error("Error fetching agent:", error);
+          toast.error("Erro ao carregar o agente");
+          navigate("/chat");
           return;
         }
 
-        const { data, error } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('bot_id', agentId)
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        const formattedConversations = data?.map(conv => ({
-          id: conv.id,
-          title: conv.title || `Conversa ${new Date(conv.created_at).toLocaleDateString()}`,
-          created_at: conv.created_at
-        })) || [];
-        
-        setConversations(formattedConversations);
-        
-        // Se houver conversas, seleciona a primeira
-        if (formattedConversations.length > 0 && !currentConversation) {
-          setCurrentConversation(formattedConversations[0].id);
-        }
+        setAgent(data);
+        await fetchConversations();
       } catch (error) {
-        console.error('Erro ao buscar conversas:', error);
-        toast.error("Erro ao carregar conversas");
+        console.error("Error:", error);
+        toast.error("Erro ao carregar o agente");
+      } finally {
+        setLoading(false);
       }
     };
-    
-    fetchConversations();
-  }, [agentId, navigate, currentConversation]);
 
-  // Buscar mensagens da conversa atual
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!currentConversation) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', currentConversation)
-          .order('created_at', { ascending: true });
-        
-        if (error) throw error;
-        
-        setMessages(data || []);
-      } catch (error) {
-        console.error('Erro ao buscar mensagens:', error);
-        toast.error("Erro ao carregar mensagens");
-      }
-    };
-    
-    fetchMessages();
-    
-    // Criar subscription para novas mensagens
-    const channel = supabase
-      .channel(`messages_${currentConversation}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${currentConversation}`
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
-          
-          if (isLoading && newMessage.role === 'assistant') {
-            setIsLoading(false);
-          }
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentConversation, isLoading]);
+    fetchAgent();
+  }, [agentId, navigate]);
 
-  const handleConversationSelect = (id: string) => {
-    setCurrentConversation(id);
-  };
-
-  const handleNewConversation = async () => {
-    if (!agentId) return;
-    
+  // Fetch conversations for this agent
+  const fetchConversations = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      
-      const title = `Nova conversa ${new Date().toLocaleString()}`;
+      if (!session) {
+        navigate('/');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('bot_id', agentId)
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        toast.error("Erro ao carregar as conversas");
+        return;
+      }
+
+      setConversations(data || []);
+
+      // If there are conversations, select the first one
+      if (data && data.length > 0) {
+        await selectConversation(data[0]);
+      } else {
+        // If no conversation exists, create a new one
+        await createNewConversation();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Erro ao carregar as conversas");
+    }
+  };
+
+  // Select a conversation
+  const selectConversation = async (selectedConversation: Conversation) => {
+    setConversation(selectedConversation);
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', selectedConversation.id)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error("Error fetching messages:", error);
+        toast.error("Erro ao carregar as mensagens");
+        return;
+      }
+
+      // Convert database format to UI format
+      const formattedMessages: Message[] = (data || []).map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        is_from_user: msg.is_from_user || false,
+        conversation_id: msg.conversation_id,
+        created_at: msg.created_at,
+        bot_id: msg.bot_id,
+        user_id: msg.user_id
+      }));
+
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Erro ao carregar as mensagens");
+    }
+  };
+
+  // Create a new conversation
+  const createNewConversation = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('conversations')
         .insert({
           bot_id: agentId,
           user_id: session.user.id,
-          title
+          title: `Nova conversa com ${agent?.name || 'Agente'}`
         })
         .select()
         .single();
-      
-      if (error) throw error;
-      
-      const newConversation = {
-        id: data.id,
-        title,
-        created_at: data.created_at
-      };
-      
-      setConversations(prev => [newConversation, ...prev]);
-      setCurrentConversation(data.id);
+
+      if (error) {
+        console.error("Error creating conversation:", error);
+        toast.error("Erro ao criar nova conversa");
+        return;
+      }
+
+      setConversation(data);
+      setConversations(prev => [data, ...prev]);
       setMessages([]);
     } catch (error) {
-      console.error('Erro ao criar nova conversa:', error);
+      console.error("Error:", error);
       toast.error("Erro ao criar nova conversa");
     }
   };
 
-  const handleSendMessage = async (content: string) => {
-    if (!content.trim() || !currentConversation || !agentId) return;
-    
+  // Send message to agent
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || !conversation) return;
+
     try {
-      // Inserir mensagem do usuário
-      const { error: userMsgError } = await supabase
+      setSendingMessage(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/');
+        return;
+      }
+
+      // Add user message to UI
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        content,
+        is_from_user: true,
+        conversation_id: conversation.id,
+        created_at: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+
+      // Save user message to database
+      const { error: messageError } = await supabase
         .from('messages')
         .insert({
-          conversation_id: currentConversation,
-          role: 'user',
-          content
+          conversation_id: conversation.id,
+          content,
+          is_from_user: true,
+          user_id: session.user.id,
+          bot_id: agentId
         });
-      
-      if (userMsgError) throw userMsgError;
-      
-      setIsLoading(true);
-      
-      // Chamar o processamento na edge function
-      const { data, error } = await supabase.functions.invoke('process-message', {
-        body: {
+
+      if (messageError) {
+        console.error("Error saving message:", messageError);
+        toast.error("Erro ao enviar mensagem");
+        return;
+      }
+
+      // Call Supabase Edge Function to process the message
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { 
+          botId: agentId,
           message: content,
-          conversationId: currentConversation,
-          botId: agentId
+          conversationId: conversation.id
         }
       });
-      
+
       if (error) {
-        console.error('Erro ao processar mensagem:', error);
-        toast.error("Erro ao processar sua mensagem");
-        setIsLoading(false);
+        console.error("Error processing message:", error);
+        toast.error("Erro ao processar mensagem");
+        return;
       }
+
+      // Add bot response to UI
+      if (data && data.response) {
+        const botMessage: Message = {
+          id: crypto.randomUUID(),
+          content: data.response,
+          is_from_user: false,
+          conversation_id: conversation.id,
+          created_at: new Date().toISOString()
+        };
+
+        setMessages(prev => [...prev, botMessage]);
+      }
+
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error("Error sending message:", error);
       toast.error("Erro ao enviar mensagem");
-      setIsLoading(false);
+    } finally {
+      setSendingMessage(false);
     }
   };
 
-  const handleBack = () => {
-    navigate('/chat');
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-white">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar workspace={workspace} />
-        <div className="flex-1 flex h-screen overflow-hidden">
-          <ConversationList
-            conversations={conversations}
-            currentConversation={currentConversation}
-            onConversationSelect={handleConversationSelect}
-            onNewConversation={handleNewConversation}
-            onBack={handleBack}
-          />
-          
-          {currentConversation ? (
-            <div className="flex-1 flex flex-col h-full">
-              <div className="p-4 border-b">
-                <h2 className="font-medium">{botName}</h2>
+        <main className="flex-1 flex flex-col md:flex-row">
+          <aside className="w-full md:w-64 border-r bg-white p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mr-2"
+                  onClick={() => navigate('/chat')}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <h2 className="text-lg font-semibold">Conversas</h2>
               </div>
-              
-              <MessageList 
-                messages={messages} 
-                isLoading={isLoading} 
-              />
-              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={createNewConversation}
+              >
+                Nova
+              </Button>
+            </div>
+            <ConversationList
+              conversations={conversations}
+              activeConversationId={conversation?.id}
+              onSelect={selectConversation}
+            />
+          </aside>
+
+          <div className="flex-1 flex flex-col h-screen">
+            <header className="p-4 border-b bg-white flex items-center">
+              <Bot className="h-6 w-6 text-purple-600 mr-2" />
+              <h1 className="text-xl font-bold">{agent?.name}</h1>
+            </header>
+            
+            <div className="flex-1 overflow-auto p-4">
+              <MessageList messages={messages} />
+            </div>
+            
+            <div className="p-4 border-t bg-white">
               <MessageInput 
-                onSendMessage={handleSendMessage}
-                disabled={isLoading}
+                onSend={sendMessage}
+                disabled={sendingMessage}
               />
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-medium mb-2">Nenhuma conversa selecionada</h3>
-                <p className="text-gray-500 mb-4">Selecione uma conversa ou inicie uma nova para começar</p>
-                <Button onClick={handleNewConversation}>Nova Conversa</Button>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        </main>
       </div>
     </SidebarProvider>
   );
