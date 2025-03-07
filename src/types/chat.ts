@@ -7,6 +7,7 @@ export type Message = {
   created_at: string;
   bot_id?: string;
   user_id?: string;
+  error?: boolean;
 };
 
 export type Conversation = {

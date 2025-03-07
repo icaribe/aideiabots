@@ -117,7 +117,8 @@ const ChatConversation = () => {
         conversation_id: msg.conversation_id,
         created_at: msg.created_at,
         bot_id: msg.bot_id,
-        user_id: msg.user_id
+        user_id: msg.user_id,
+        error: msg.error || false
       }));
 
       setMessages(formattedMessages);
@@ -203,25 +204,47 @@ const ChatConversation = () => {
       }
 
       // Call Supabase Edge Function to process the message
-      const { data, error } = await supabase.functions.invoke('chat', {
+      const response = await supabase.functions.invoke('chat', {
         body: { 
           botId: agentId,
           message: content,
           conversationId: conversation.id
         }
       });
-
-      if (error) {
-        console.error("Error processing message:", error);
-        toast.error("Erro ao processar mensagem");
+      
+      if (response.error) {
+        console.error("Error processing message:", response.error);
+        
+        // Add error message to UI
+        const errorMessage: Message = {
+          id: crypto.randomUUID(),
+          content: response.error.message || "Erro desconhecido ao processar mensagem",
+          is_from_user: false,
+          conversation_id: conversation.id,
+          created_at: new Date().toISOString(),
+          error: true
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+        
+        // Save error message to database
+        await supabase.from('messages').insert({
+          conversation_id: conversation.id,
+          content: response.error.message || "Erro desconhecido ao processar mensagem",
+          is_from_user: false,
+          user_id: session.user.id,
+          bot_id: agentId,
+          error: true
+        });
+        
         return;
       }
 
       // Add bot response to UI
-      if (data && data.response) {
+      if (response.data && response.data.response) {
         const botMessage: Message = {
           id: crypto.randomUUID(),
-          content: data.response,
+          content: response.data.response,
           is_from_user: false,
           conversation_id: conversation.id,
           created_at: new Date().toISOString()
@@ -233,6 +256,19 @@ const ChatConversation = () => {
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Erro ao enviar mensagem");
+      
+      // Add error message to UI if there's a critical error
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        content: error instanceof Error ? error.message : "Erro desconhecido ao processar mensagem",
+        is_from_user: false,
+        conversation_id: conversation?.id || "",
+        created_at: new Date().toISOString(),
+        error: true
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      
     } finally {
       setSendingMessage(false);
     }

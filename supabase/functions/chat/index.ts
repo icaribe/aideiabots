@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -40,12 +41,16 @@ serve(async (req) => {
 
     console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
 
-    // Se o provedor for Groq, use a chave API do ambiente
+    // Se o provedor for Groq, use a chave API do ambiente ou a chave do bot
+    const groqApiKey = Deno.env.get('GROQ_API_KEY');
     if (bot.llm_provider.toLowerCase() === 'groq') {
-      bot.api_key = Deno.env.get('GROQ_API_KEY') ?? '';
+      if (!groqApiKey && !bot.api_key) {
+        throw new Error('Chave API do Groq não está configurada. Por favor, configure a chave API nas configurações do projeto.');
+      }
+      bot.api_key = groqApiKey || bot.api_key;
     }
 
-    const systemPrompt = "Você é um assistente útil e amigável.";
+    const systemPrompt = bot.description || "Você é um assistente útil e amigável.";
     let response;
 
     switch (bot.llm_provider.toLowerCase()) {
@@ -88,8 +93,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in chat function:', error);
+    
+    // Resposta mais detalhada para o front-end
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Erro interno do servidor' }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -98,8 +105,13 @@ serve(async (req) => {
   }
 });
 
-async function handleOpenAIRequest(message: string, systemPrompt: string, bot: any) {
+async function handleOpenAIRequest(message, systemPrompt, bot) {
   console.log('Making OpenAI request with model:', bot.model);
+  
+  if (!bot.api_key) {
+    throw new Error('Chave API da OpenAI não está configurada');
+  }
+  
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -120,7 +132,7 @@ async function handleOpenAIRequest(message: string, systemPrompt: string, bot: a
   if (!response.ok) {
     const error = await response.text();
     console.error('OpenAI API error:', error);
-    throw new Error(`OpenAI API error: ${error}`);
+    throw new Error(`Erro na API da OpenAI: ${error}`);
   }
 
   const data = await response.json();
@@ -128,8 +140,13 @@ async function handleOpenAIRequest(message: string, systemPrompt: string, bot: a
   return data.choices[0]?.message?.content || 'No response generated';
 }
 
-async function handleAnthropicRequest(message: string, systemPrompt: string, bot: any) {
+async function handleAnthropicRequest(message, systemPrompt, bot) {
   console.log('Making Anthropic request with model:', bot.model);
+  
+  if (!bot.api_key) {
+    throw new Error('Chave API da Anthropic não está configurada');
+  }
+  
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -149,7 +166,7 @@ async function handleAnthropicRequest(message: string, systemPrompt: string, bot
   if (!response.ok) {
     const error = await response.text();
     console.error('Anthropic API error:', error);
-    throw new Error(`Anthropic API error: ${error}`);
+    throw new Error(`Erro na API da Anthropic: ${error}`);
   }
 
   const data = await response.json();
@@ -157,8 +174,13 @@ async function handleAnthropicRequest(message: string, systemPrompt: string, bot
   return data.content[0]?.text || 'No response generated';
 }
 
-async function handleGeminiRequest(message: string, systemPrompt: string, bot: any) {
+async function handleGeminiRequest(message, systemPrompt, bot) {
   console.log('Making Gemini request with model:', bot.model);
+  
+  if (!bot.api_key) {
+    throw new Error('Chave API do Google não está configurada');
+  }
+  
   const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
     method: 'POST',
     headers: {
@@ -176,7 +198,7 @@ async function handleGeminiRequest(message: string, systemPrompt: string, bot: a
   if (!response.ok) {
     const error = await response.text();
     console.error('Gemini API error:', error);
-    throw new Error(`Gemini API error: ${error}`);
+    throw new Error(`Erro na API do Gemini: ${error}`);
   }
 
   const data = await response.json();
@@ -184,9 +206,9 @@ async function handleGeminiRequest(message: string, systemPrompt: string, bot: a
   return data.candidates[0]?.content?.parts[0]?.text || 'No response generated';
 }
 
-async function handleGroqRequest(message: string, systemPrompt: string, bot: any) {
+async function handleGroqRequest(message, systemPrompt, bot) {
   if (!bot.api_key) {
-    throw new Error('Chave API do Groq não configurada');
+    throw new Error('Chave API do Groq não está configurada');
   }
 
   console.log('Making Groq request with model:', bot.model);
