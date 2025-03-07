@@ -43,6 +43,3 @@ enabled = true
 
 [functions]
 enabled = true
-
-[vector]
-enabled = true
