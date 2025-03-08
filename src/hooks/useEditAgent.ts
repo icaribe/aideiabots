@@ -11,6 +11,10 @@ export const useEditAgent = (id: string | undefined) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
+  const [selectedVoiceCredentialId, setSelectedVoiceCredentialId] = useState<string | null>(null);
+  const [selectedVoiceProvider, setSelectedVoiceProvider] = useState<string | null>(null);
+  const [selectedVoiceModel, setSelectedVoiceModel] = useState<string | null>(null);
   const [agentName, setAgentName] = useState("");
   const [agentDescription, setAgentDescription] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -39,9 +43,13 @@ export const useEditAgent = (id: string | undefined) => {
           setSelectedType(agent.provider || 'custom');
           setSelectedProvider(agent.llm_provider);
           setSelectedModel(agent.model);
+          setSelectedCredentialId(agent.llm_credential_id || null);
+          setSelectedVoiceCredentialId(agent.voice_credential_id || null);
+          setSelectedVoiceProvider(agent.voice_provider || null);
+          setSelectedVoiceModel(agent.voice_model || null);
           setAgentName(agent.name);
           setAgentDescription(agent.description || '');
-          // Check for whatsapp_number in the webhook_url field, as that's where it's stored
+          // Use webhook_url for whatsapp_number
           setWhatsappNumber(agent.webhook_url || '');
           
           if (agent.intents && agent.intents.length > 0) {
@@ -65,7 +73,7 @@ export const useEditAgent = (id: string | undefined) => {
   }, [id]);
 
   const handleUpdateAgent = async () => {
-    if (!agentName || !selectedProvider || !selectedModel) {
+    if (!agentName || (!selectedCredentialId && (!selectedProvider || !selectedModel))) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
@@ -87,7 +95,11 @@ export const useEditAgent = (id: string | undefined) => {
           llm_provider: selectedProvider,
           model: selectedModel,
           provider: selectedType,
-          webhook_url: whatsappNumber || null, // Store whatsapp number in webhook_url field
+          webhook_url: whatsappNumber || null,
+          llm_credential_id: selectedCredentialId,
+          voice_credential_id: selectedVoiceCredentialId,
+          voice_provider: selectedVoiceProvider,
+          voice_model: selectedVoiceModel,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -157,6 +169,14 @@ export const useEditAgent = (id: string | undefined) => {
     setSelectedProvider,
     selectedModel,
     setSelectedModel,
+    selectedCredentialId,
+    setSelectedCredentialId,
+    selectedVoiceCredentialId,
+    setSelectedVoiceCredentialId,
+    selectedVoiceProvider,
+    setSelectedVoiceProvider,
+    selectedVoiceModel,
+    setSelectedVoiceModel,
     agentName,
     setAgentName,
     agentDescription,

@@ -20,6 +20,8 @@ const EditAgent = () => {
     setSelectedProvider,
     selectedModel,
     setSelectedModel,
+    selectedCredentialId,
+    setSelectedCredentialId,
     agentName,
     setAgentName,
     agentDescription,
@@ -53,8 +55,10 @@ const EditAgent = () => {
             <LLMStep
               selectedProvider={selectedProvider}
               selectedModel={selectedModel}
+              selectedCredentialId={selectedCredentialId}
               onProviderSelect={setSelectedProvider}
               onModelSelect={setSelectedModel}
+              onCredentialSelect={setSelectedCredentialId}
               onBack={() => setCurrentStep("type")}
               onNext={() => setCurrentStep("config")}
             />

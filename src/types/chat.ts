@@ -31,7 +31,7 @@ export type Message = {
   id: string;
   is_from_user: boolean;
   user_id: string;
-  error?: boolean;  // Changed from string to boolean
+  error?: boolean;
 };
 
 export type Conversation = {

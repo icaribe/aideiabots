@@ -15,12 +15,16 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          llm_credential_id: string | null
           llm_provider: string
           model: string
           name: string
           provider: string | null
           updated_at: string | null
           user_id: string
+          voice_credential_id: string | null
+          voice_model: string | null
+          voice_provider: string | null
           webhook_url: string | null
         }
         Insert: {
@@ -28,12 +32,16 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          llm_credential_id?: string | null
           llm_provider: string
           model: string
           name: string
           provider?: string | null
           updated_at?: string | null
           user_id: string
+          voice_credential_id?: string | null
+          voice_model?: string | null
+          voice_provider?: string | null
           webhook_url?: string | null
         }
         Update: {
@@ -41,20 +49,38 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          llm_credential_id?: string | null
           llm_provider?: string
           model?: string
           name?: string
           provider?: string | null
           updated_at?: string | null
           user_id?: string
+          voice_credential_id?: string | null
+          voice_model?: string | null
+          voice_provider?: string | null
           webhook_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bots_llm_credential_id_fkey"
+            columns: ["llm_credential_id"]
+            isOneToOne: false
+            referencedRelation: "provider_credentials"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bots_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bots_voice_credential_id_fkey"
+            columns: ["voice_credential_id"]
+            isOneToOne: false
+            referencedRelation: "provider_credentials"
             referencedColumns: ["id"]
           },
         ]
@@ -205,6 +231,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      provider_credentials: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          id: string
+          name: string
+          provider_id: string
+          provider_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          id?: string
+          name: string
+          provider_id: string
+          provider_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          provider_id?: string
+          provider_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {

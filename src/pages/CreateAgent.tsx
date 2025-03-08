@@ -17,6 +17,10 @@ const CreateAgent = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
+  const [selectedVoiceCredentialId, setSelectedVoiceCredentialId] = useState<string | null>(null);
+  const [selectedVoiceProvider, setSelectedVoiceProvider] = useState<string | null>(null);
+  const [selectedVoiceModel, setSelectedVoiceModel] = useState<string | null>(null);
   
   // Configuration state
   const [agentName, setAgentName] = useState("");
@@ -30,7 +34,7 @@ const CreateAgent = () => {
   }]);
 
   const handleCreateAgent = async () => {
-    if (!agentName || !selectedProvider || !selectedModel) {
+    if (!agentName || (!selectedCredentialId && (!selectedProvider || !selectedModel))) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
@@ -53,7 +57,11 @@ const CreateAgent = () => {
           user_id: session.user.id,
           llm_provider: selectedProvider,
           model: selectedModel,
-          webhook_url: intents[0]?.webhookUrl || null
+          webhook_url: whatsappNumber,
+          llm_credential_id: selectedCredentialId,
+          voice_credential_id: selectedVoiceCredentialId,
+          voice_provider: selectedVoiceProvider,
+          voice_model: selectedVoiceModel
         })
         .select()
         .single();
@@ -70,7 +78,8 @@ const CreateAgent = () => {
           bot_id: bot.id,
           name: intent.name,
           description: intent.description,
-          webhook_url: intent.webhookUrl
+          webhook_url: intent.webhookUrl,
+          examples: intent.examples
         }));
 
         const { error: intentsError } = await supabase
@@ -126,8 +135,10 @@ const CreateAgent = () => {
             <LLMStep
               selectedProvider={selectedProvider}
               selectedModel={selectedModel}
+              selectedCredentialId={selectedCredentialId}
               onProviderSelect={setSelectedProvider}
               onModelSelect={setSelectedModel}
+              onCredentialSelect={setSelectedCredentialId}
               onBack={() => setCurrentStep("type")}
               onNext={() => setCurrentStep("config")}
             />
