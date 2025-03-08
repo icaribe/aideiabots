@@ -116,7 +116,7 @@ const ChatConversation = () => {
         is_from_user: msg.is_from_user || false,
         conversation_id: msg.conversation_id,
         created_at: msg.created_at,
-        bot_id: msg.bot_id,
+        bot_id: msg.bot_id || "",
         user_id: msg.user_id,
         error: msg.error || false
       }));
@@ -181,7 +181,9 @@ const ChatConversation = () => {
         content,
         is_from_user: true,
         conversation_id: conversation.id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        bot_id: agentId || "",
+        user_id: session.user.id
       };
 
       setMessages(prev => [...prev, userMessage]);
@@ -234,7 +236,9 @@ const ChatConversation = () => {
           is_from_user: false,
           conversation_id: conversation.id,
           created_at: new Date().toISOString(),
-          error: true
+          error: true,
+          bot_id: agentId || "",
+          user_id: session.user.id
         };
         
         setMessages(prev => [...prev, errorResponseMessage]);
@@ -261,7 +265,9 @@ const ChatConversation = () => {
           content: response.data.response,
           is_from_user: false,
           conversation_id: conversation.id,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          bot_id: agentId || "",
+          user_id: session.user.id
         };
 
         setMessages(prev => [...prev, botMessage]);
@@ -278,7 +284,9 @@ const ChatConversation = () => {
         is_from_user: false,
         conversation_id: conversation?.id || "",
         created_at: new Date().toISOString(),
-        error: true
+        error: true,
+        bot_id: agentId || "",
+        user_id: session?.user?.id || ""
       };
       
       setMessages(prev => [...prev, errorMessage]);

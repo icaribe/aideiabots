@@ -41,7 +41,8 @@ export const useEditAgent = (id: string | undefined) => {
           setSelectedModel(agent.model);
           setAgentName(agent.name);
           setAgentDescription(agent.description || '');
-          setWhatsappNumber(agent.whatsapp_number || '');
+          // Check for whatsapp_number in the webhook_url field, as that's where it's stored
+          setWhatsappNumber(agent.webhook_url || '');
           
           if (agent.intents && agent.intents.length > 0) {
             setIntents(agent.intents.map((intent: any) => ({
@@ -86,8 +87,7 @@ export const useEditAgent = (id: string | undefined) => {
           llm_provider: selectedProvider,
           model: selectedModel,
           provider: selectedType,
-          webhook_url: intents[0]?.webhookUrl || null,
-          whatsapp_number: whatsappNumber,
+          webhook_url: whatsappNumber || null, // Store whatsapp number in webhook_url field
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
