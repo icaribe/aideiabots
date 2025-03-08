@@ -118,7 +118,7 @@ const ChatConversation = () => {
         created_at: msg.created_at,
         bot_id: msg.bot_id || "",
         user_id: msg.user_id,
-        error: msg.error || false
+        error: msg.error || false  // Ensure this matches the Message type
       }));
 
       setMessages(formattedMessages);
@@ -277,6 +277,9 @@ const ChatConversation = () => {
       console.error("Error sending message:", error);
       toast.error("Erro ao enviar mensagem");
       
+      // Store the session in a variable to avoid the error
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
       // Add error message to UI if there's a critical error
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -286,7 +289,7 @@ const ChatConversation = () => {
         created_at: new Date().toISOString(),
         error: true,
         bot_id: agentId || "",
-        user_id: session?.user?.id || ""
+        user_id: currentSession?.user?.id || ""
       };
       
       setMessages(prev => [...prev, errorMessage]);
