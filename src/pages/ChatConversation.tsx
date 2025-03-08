@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,7 +22,6 @@ const ChatConversation = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [workspace] = useState("Meu Workspace");
 
-  // Fetch agent details
   useEffect(() => {
     const fetchAgent = async () => {
       try {
@@ -55,7 +53,6 @@ const ChatConversation = () => {
     fetchAgent();
   }, [agentId, navigate]);
 
-  // Fetch conversations for this agent
   const fetchConversations = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -79,11 +76,9 @@ const ChatConversation = () => {
 
       setConversations(data || []);
 
-      // If there are conversations, select the first one
       if (data && data.length > 0) {
         await selectConversation(data[0]);
       } else {
-        // If no conversation exists, create a new one
         await createNewConversation();
       }
     } catch (error) {
@@ -92,7 +87,6 @@ const ChatConversation = () => {
     }
   };
 
-  // Select a conversation
   const selectConversation = async (selectedConversation: Conversation) => {
     setConversation(selectedConversation);
     
@@ -109,7 +103,6 @@ const ChatConversation = () => {
         return;
       }
 
-      // Convert database format to UI format
       const formattedMessages: Message[] = (data || []).map(msg => ({
         id: msg.id,
         content: msg.content,
@@ -118,7 +111,7 @@ const ChatConversation = () => {
         created_at: msg.created_at,
         bot_id: msg.bot_id || "",
         user_id: msg.user_id,
-        error: msg.error || false  // Ensure this matches the Message type
+        error: msg.error
       }));
 
       setMessages(formattedMessages);
@@ -128,7 +121,6 @@ const ChatConversation = () => {
     }
   };
 
-  // Create a new conversation
   const createNewConversation = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -162,7 +154,6 @@ const ChatConversation = () => {
     }
   };
 
-  // Send message to agent
   const sendMessage = async (content: string) => {
     if (!content.trim() || !conversation) return;
 
@@ -175,7 +166,6 @@ const ChatConversation = () => {
         return;
       }
 
-      // Add user message to UI
       const userMessage: Message = {
         id: crypto.randomUUID(),
         content,
@@ -188,7 +178,6 @@ const ChatConversation = () => {
 
       setMessages(prev => [...prev, userMessage]);
 
-      // Save user message to database
       const { error: messageError } = await supabase
         .from('messages')
         .insert({
@@ -205,7 +194,6 @@ const ChatConversation = () => {
         return;
       }
 
-      // Call Supabase Edge Function to process the message
       const response = await supabase.functions.invoke('chat', {
         body: { 
           botId: agentId,
@@ -217,19 +205,16 @@ const ChatConversation = () => {
       if (response.error) {
         console.error("Error processing message:", response.error);
         
-        // Determine error message based on error content
         let errorMessage = "Erro desconhecido ao processar mensagem";
         
         if (response.error.message) {
           errorMessage = response.error.message;
           
-          // Adiciona instruções específicas se o erro estiver relacionado à chave da API
           if (errorMessage.includes("API") && errorMessage.includes("Groq")) {
             errorMessage += ". Por favor, adicione a chave API do Groq nas configurações do projeto.";
           }
         }
         
-        // Add error message to UI
         const errorResponseMessage: Message = {
           id: crypto.randomUUID(),
           content: errorMessage,
@@ -243,7 +228,6 @@ const ChatConversation = () => {
         
         setMessages(prev => [...prev, errorResponseMessage]);
         
-        // Save error message to database
         await supabase
           .from('messages')
           .insert({
@@ -258,7 +242,6 @@ const ChatConversation = () => {
         return;
       }
 
-      // Add bot response to UI
       if (response.data && response.data.response) {
         const botMessage: Message = {
           id: crypto.randomUUID(),
@@ -277,10 +260,8 @@ const ChatConversation = () => {
       console.error("Error sending message:", error);
       toast.error("Erro ao enviar mensagem");
       
-      // Store the session in a variable to avoid the error
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
-      // Add error message to UI if there's a critical error
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         content: error instanceof Error ? error.message : "Erro desconhecido ao processar mensagem",

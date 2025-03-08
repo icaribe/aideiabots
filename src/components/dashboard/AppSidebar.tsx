@@ -63,6 +63,18 @@ export const AppSidebar = ({ workspace }: { workspace: string }) => {
     },
   ];
 
+  // Handle close sidebar click for mobile
+  const handleCloseSidebar = () => {
+    closeSidebar(false);
+  };
+
+  // Handle menu item click for mobile
+  const handleMenuItemClick = () => {
+    if (isMobile) {
+      closeSidebar(false);
+    }
+  };
+
   return (
     <aside
       className={`${
@@ -77,7 +89,7 @@ export const AppSidebar = ({ workspace }: { workspace: string }) => {
         <div className="flex items-center justify-between border-b p-4">
           <h1 className="text-lg font-bold">{workspace}</h1>
           {isMobile && (
-            <Button variant="ghost" size="icon" onClick={closeSidebar}>
+            <Button variant="ghost" size="icon" onClick={handleCloseSidebar}>
               <X className="h-5 w-5" />
             </Button>
           )}
@@ -88,7 +100,7 @@ export const AppSidebar = ({ workspace }: { workspace: string }) => {
             <Link
               key={item.path}
               to={item.path}
-              onClick={isMobile ? closeSidebar : undefined}
+              onClick={handleMenuItemClick}
             >
               <Button
                 variant="ghost"
