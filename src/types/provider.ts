@@ -8,6 +8,8 @@ export type LLMProviderCredential = {
   provider_id: string;
   api_key: string;
   created_at: string;
+  user_id?: string;
+  updated_at?: string;
 };
 
 export type VoiceProviderCredential = {
@@ -17,6 +19,8 @@ export type VoiceProviderCredential = {
   provider_id: string;
   api_key: string;
   created_at: string;
+  user_id?: string;
+  updated_at?: string;
 };
 
 export type ProviderCredential = LLMProviderCredential | VoiceProviderCredential;

@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { LLMModel, ProviderCredential, VoiceModel } from "@/types/provider";
+import { LLMModel, ProviderCredential, ProviderType, VoiceModel } from "@/types/provider";
 import { fetchGroqModels, fetchOpenAIModels, fetchAnthropicModels, fetchGeminiModels, fetchOpenRouterModels, fetchOllamaModels } from "./llmProviders";
 import { fetchElevenLabsVoices, fetchOpenAIVoices } from "./voiceProviders";
 
@@ -16,14 +16,28 @@ export const getProviderCredentials = async (): Promise<ProviderCredential[]> =>
     throw new Error("Falha ao buscar as credenciais");
   }
 
-  return data || [];
+  // Cast data to the correct type
+  return (data || []).map(cred => ({
+    ...cred,
+    provider_type: cred.provider_type as ProviderType,
+  })) as ProviderCredential[];
 };
 
 // Create a new provider credential
 export const createProviderCredential = async (credential: Omit<ProviderCredential, 'id' | 'created_at'>): Promise<ProviderCredential> => {
+  // Get user_id from current session
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error("User not authenticated");
+  }
+
   const { data, error } = await supabase
     .from('provider_credentials')
-    .insert(credential)
+    .insert({
+      ...credential,
+      user_id: session.user.id
+    })
     .select()
     .single();
 
@@ -32,7 +46,11 @@ export const createProviderCredential = async (credential: Omit<ProviderCredenti
     throw new Error("Falha ao criar a credencial");
   }
 
-  return data;
+  // Cast data to the correct type
+  return {
+    ...data,
+    provider_type: data.provider_type as ProviderType,
+  } as ProviderCredential;
 };
 
 // Update a provider credential
@@ -49,7 +67,11 @@ export const updateProviderCredential = async (id: string, credential: Partial<P
     throw new Error("Falha ao atualizar a credencial");
   }
 
-  return data;
+  // Cast data to the correct type
+  return {
+    ...data,
+    provider_type: data.provider_type as ProviderType,
+  } as ProviderCredential;
 };
 
 // Delete a provider credential

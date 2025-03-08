@@ -13,11 +13,11 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const AppSidebar = ({ workspace }: { workspace: string }) => {
-  const { isMobile } = useMobile();
-  const { isSidebarOpen, closeSidebar } = useSidebar();
+  const isMobile = useIsMobile();
+  const { open: isSidebarOpen, setOpenMobile: closeSidebar } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
