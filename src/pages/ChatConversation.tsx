@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -111,7 +112,7 @@ const ChatConversation = () => {
         created_at: msg.created_at,
         bot_id: msg.bot_id || "",
         user_id: msg.user_id,
-        error: msg.error
+        error: msg.error || false
       }));
 
       setMessages(formattedMessages);

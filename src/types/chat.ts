@@ -31,7 +31,7 @@ export type Message = {
   id: string;
   is_from_user: boolean;
   user_id: string;
-  error?: boolean; // Adding error property as optional boolean
+  error?: boolean;
 };
 
 export type Conversation = {
