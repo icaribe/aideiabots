@@ -34,6 +34,7 @@ export const LLMCredentialForm = ({
   const [isValidated, setIsValidated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [availableModels, setAvailableModels] = useState<LLMModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
 
   const isEditing = !!credential;
 
@@ -55,6 +56,7 @@ export const LLMCredentialForm = ({
       const models = await validateLLMProviderApiKey(providerId, apiKey);
       setAvailableModels(models);
       setIsValidated(true);
+      setSelectedModel(null); // Reset selected model when validating new key
       toast.success("API Key validada com sucesso!");
     } catch (error) {
       toast.error(error.message || "Erro ao validar API Key");
@@ -115,6 +117,7 @@ export const LLMCredentialForm = ({
               setProviderId(value);
               setIsValidated(false);
               setAvailableModels([]);
+              setSelectedModel(null);
             }}
             disabled={isEditing}
           >
@@ -141,6 +144,7 @@ export const LLMCredentialForm = ({
                 setApiKey(e.target.value);
                 setIsValidated(false);
                 setAvailableModels([]);
+                setSelectedModel(null);
               }}
               placeholder="Digite sua API Key"
             />
@@ -157,13 +161,37 @@ export const LLMCredentialForm = ({
         </div>
 
         {isValidated && availableModels.length > 0 && (
-          <div className="mt-4 p-4 bg-green-50 rounded border border-green-200">
-            <p className="text-green-700 text-sm mb-2">
-              ✓ API Key validada com sucesso!
-            </p>
-            <p className="text-sm text-gray-600">
-              {availableModels.length} modelos disponíveis
-            </p>
+          <div className="space-y-4">
+            <div className="mt-4 p-4 bg-green-50 rounded border border-green-200">
+              <p className="text-green-700 text-sm mb-2">
+                ✓ API Key validada com sucesso!
+              </p>
+              <p className="text-sm text-gray-600">
+                {availableModels.length} modelos disponíveis
+              </p>
+            </div>
+            
+            <div className="mt-4">
+              <Label>Modelo padrão (opcional)</Label>
+              <Select 
+                value={selectedModel || ""} 
+                onValueChange={setSelectedModel}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione um modelo padrão" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Você pode escolher um modelo padrão para este provedor
+              </p>
+            </div>
           </div>
         )}
       </div>

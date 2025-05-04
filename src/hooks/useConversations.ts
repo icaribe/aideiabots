@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -102,7 +101,7 @@ export function useConversations(agentId: string | undefined) {
         created_at: msg.created_at,
         bot_id: msg.bot_id || "",
         user_id: msg.user_id,
-        error: msg.error || false
+        error: msg.error || false  // Add default false if error is missing
       }));
 
       setMessages(formattedMessages);
