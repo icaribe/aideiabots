@@ -73,8 +73,8 @@ export const useEditAgent = (id: string | undefined) => {
   }, [id]);
 
   const handleUpdateAgent = async () => {
-    if (!agentName || (!selectedCredentialId && (!selectedProvider || !selectedModel))) {
-      toast.error("Por favor, preencha todos os campos obrigatórios");
+    if (!agentName) {
+      toast.error("Por favor, preencha o nome do agente");
       return;
     }
 
@@ -108,7 +108,9 @@ export const useEditAgent = (id: string | undefined) => {
         throw botError;
       }
 
-      if (intents.length > 0) {
+      // Apenas processe as intenções se houver pelo menos uma com nome preenchido
+      const validIntents = intents.filter(intent => intent.name.trim() !== "");
+      if (validIntents.length > 0) {
         const { error: deleteIntentsError } = await supabase
           .from('intents')
           .delete()
@@ -118,12 +120,12 @@ export const useEditAgent = (id: string | undefined) => {
           console.error("Erro ao atualizar intents:", deleteIntentsError);
         }
 
-        const intentsToInsert = intents.map(intent => ({
+        const intentsToInsert = validIntents.map(intent => ({
           bot_id: id,
           name: intent.name,
           description: intent.description,
           webhook_url: intent.webhookUrl,
-          examples: intent.examples
+          examples: intent.examples.filter(example => example.trim() !== "")
         }));
 
         const { error: intentsError } = await supabase

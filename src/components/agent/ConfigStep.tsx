@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,20 +34,28 @@ export const ConfigStep = ({
   onBack,
   onSubmit
 }: ConfigStepProps) => {
+  const [showIntentSection, setShowIntentSection] = useState(intents.length > 0 && intents[0].name !== "");
+  
   const handleAddIntent = () => {
-    onIntentsChange([...intents, {
-      name: "",
-      description: "",
-      examples: [""],
-      webhookUrl: ""
-    }]);
+    if (!showIntentSection) {
+      setShowIntentSection(true);
+    } else {
+      onIntentsChange([...intents, {
+        name: "",
+        description: "",
+        examples: [""],
+        webhookUrl: ""
+      }]);
+    }
   };
 
   const handleRemoveIntent = (index: number) => {
-    if (intents.length > 1) {
-      const newIntents = [...intents];
-      newIntents.splice(index, 1);
-      onIntentsChange(newIntents);
+    const newIntents = [...intents];
+    newIntents.splice(index, 1);
+    onIntentsChange(newIntents);
+    
+    if (newIntents.length === 0) {
+      setShowIntentSection(false);
     }
   };
 
@@ -77,8 +86,8 @@ export const ConfigStep = ({
   };
 
   const handleSubmit = () => {
-    if (!agentName || intents.some(intent => !intent.name)) {
-      toast.error("Por favor, preencha todos os campos obrigatórios");
+    if (!agentName) {
+      toast.error("Por favor, preencha o nome do agente");
       return;
     }
     onSubmit();
@@ -133,7 +142,7 @@ export const ConfigStep = ({
           </Button>
         </div>
 
-        {intents.map((intent, intentIndex) => (
+        {showIntentSection && intents.map((intent, intentIndex) => (
           <Card key={intentIndex} className="p-4 space-y-4">
             <div className="flex justify-between items-start">
               <div className="flex-1 space-y-4">
@@ -143,7 +152,6 @@ export const ConfigStep = ({
                     value={intent.name}
                     onChange={(e) => handleUpdateIntent(intentIndex, "name", e.target.value)}
                     placeholder="Ex: solicitar_orcamento"
-                    required
                   />
                 </div>
                 
@@ -200,17 +208,15 @@ export const ConfigStep = ({
                 </div>
               </div>
               
-              {intents.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2"
-                  onClick={() => handleRemoveIntent(intentIndex)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="ml-2"
+                onClick={() => handleRemoveIntent(intentIndex)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </Card>
         ))}
