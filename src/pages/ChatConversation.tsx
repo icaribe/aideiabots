@@ -174,7 +174,8 @@ const ChatConversation = () => {
         conversation_id: conversation.id,
         created_at: new Date().toISOString(),
         bot_id: agentId || "",
-        user_id: session.user.id
+        user_id: session.user.id,
+        error: false
       };
 
       setMessages(prev => [...prev, userMessage]);
@@ -186,7 +187,8 @@ const ChatConversation = () => {
           content,
           is_from_user: true,
           user_id: session.user.id,
-          bot_id: agentId
+          bot_id: agentId,
+          error: false
         });
 
       if (messageError) {
@@ -251,7 +253,8 @@ const ChatConversation = () => {
           conversation_id: conversation.id,
           created_at: new Date().toISOString(),
           bot_id: agentId || "",
-          user_id: session.user.id
+          user_id: session.user.id,
+          error: false
         };
 
         setMessages(prev => [...prev, botMessage]);
