@@ -102,8 +102,8 @@ export function useConversations(agentId: string | undefined) {
         created_at: msg.created_at,
         bot_id: msg.bot_id || "",
         user_id: msg.user_id,
-        // Explicitly check if the error property exists and provide a default value if it doesn't
-        error: 'error' in msg ? msg.error : false
+        // Convert the error property to a boolean explicitly
+        error: Boolean('error' in msg && msg.error)
       }));
 
       setMessages(formattedMessages);
