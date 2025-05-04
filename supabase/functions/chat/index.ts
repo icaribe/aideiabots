@@ -41,35 +41,41 @@ serve(async (req) => {
 
     console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
 
-    // Verifica e configura a chave API do provedor LLM
+    // Buscar credencial LLM se existir
     let apiKey = null;
-    switch (bot.llm_provider.toLowerCase()) {
-      case 'groq':
-        apiKey = Deno.env.get('GROQ_API_KEY') || bot.api_key;
-        if (!apiKey) {
-          throw new Error('Chave API do Groq não está configurada. Por favor, configure a chave API nas configurações do projeto.');
-        }
-        break;
-      case 'openai':
-        apiKey = Deno.env.get('OPENAI_API_KEY') || bot.api_key;
-        if (!apiKey) {
-          throw new Error('Chave API da OpenAI não está configurada. Por favor, configure a chave API nas configurações do projeto.');
-        }
-        break;
-      case 'anthropic':
-        apiKey = Deno.env.get('ANTHROPIC_API_KEY') || bot.api_key;
-        if (!apiKey) {
-          throw new Error('Chave API da Anthropic não está configurada. Por favor, configure a chave API nas configurações do projeto.');
-        }
-        break;
-      case 'gemini':
-        apiKey = Deno.env.get('GOOGLE_API_KEY') || bot.api_key;
-        if (!apiKey) {
-          throw new Error('Chave API do Google não está configurada. Por favor, configure a chave API nas configurações do projeto.');
-        }
-        break;
-      default:
-        throw new Error(`Provedor LLM não suportado: ${bot.llm_provider}`);
+    if (bot.llm_credential_id) {
+      const { data: credential, error: credentialError } = await supabase
+        .from('provider_credentials')
+        .select('*')
+        .eq('id', bot.llm_credential_id)
+        .single();
+        
+      if (credentialError) {
+        console.error('Error fetching credential:', credentialError);
+        throw new Error('Credencial não encontrada');
+      }
+      
+      apiKey = credential.api_key;
+    } else {
+      // Fallback para variáveis de ambiente ou API key direta do bot
+      switch (bot.llm_provider.toLowerCase()) {
+        case 'groq':
+          apiKey = Deno.env.get('GROQ_API_KEY') || bot.api_key;
+          break;
+        case 'openai':
+          apiKey = Deno.env.get('OPENAI_API_KEY') || bot.api_key;
+          break;
+        case 'anthropic':
+          apiKey = Deno.env.get('ANTHROPIC_API_KEY') || bot.api_key;
+          break;
+        case 'gemini':
+          apiKey = Deno.env.get('GOOGLE_API_KEY') || bot.api_key;
+          break;
+      }
+    }
+    
+    if (!apiKey) {
+      throw new Error(`Chave API para ${bot.llm_provider} não configurada.`);
     }
 
     const systemPrompt = bot.description || "Você é um assistente útil e amigável.";
