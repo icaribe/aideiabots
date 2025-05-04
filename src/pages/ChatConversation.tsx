@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -174,7 +175,7 @@ const ChatConversation = () => {
         created_at: new Date().toISOString(),
         bot_id: agentId || "",
         user_id: session.user.id,
-        error: false  // Explicitly adding the error property
+        error: false
       };
 
       setMessages(prev => [...prev, userMessage]);
@@ -187,7 +188,7 @@ const ChatConversation = () => {
           is_from_user: true,
           user_id: session.user.id,
           bot_id: agentId,
-          error: false  // Explicitly adding the error property
+          error: false
         });
 
       if (messageError) {
@@ -223,7 +224,7 @@ const ChatConversation = () => {
           is_from_user: false,
           conversation_id: conversation.id,
           created_at: new Date().toISOString(),
-          error: true,  // Explicitly setting error to true
+          error: true,
           bot_id: agentId || "",
           user_id: session.user.id
         };
@@ -238,7 +239,7 @@ const ChatConversation = () => {
             is_from_user: false,
             user_id: session.user.id,
             bot_id: agentId,
-            error: true  // Explicitly setting error to true
+            error: true
           });
         
         return;
@@ -253,7 +254,7 @@ const ChatConversation = () => {
           created_at: new Date().toISOString(),
           bot_id: agentId || "",
           user_id: session.user.id,
-          error: false  // Explicitly adding the error property
+          error: false
         };
 
         setMessages(prev => [...prev, botMessage]);
@@ -271,7 +272,7 @@ const ChatConversation = () => {
         is_from_user: false,
         conversation_id: conversation?.id || "",
         created_at: new Date().toISOString(),
-        error: true,  // Explicitly setting error to true
+        error: true,
         bot_id: agentId || "",
         user_id: currentSession?.user?.id || ""
       };
