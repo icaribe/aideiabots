@@ -1,4 +1,5 @@
 
+
 export interface Message {
   id: string;
   content: string;
@@ -17,3 +18,4 @@ export interface Conversation {
   bot_id: string;
   created_at: string;
 }
+
