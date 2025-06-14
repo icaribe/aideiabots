@@ -1,10 +1,9 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Phone, MessageCircle, Settings } from "lucide-react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { WhatsAppConfig } from "./WhatsAppConfig";
+import { IntegrationsHeader } from "./IntegrationsHeader";
+import { IntegrationsTabsList } from "./IntegrationsTabsList";
 import { supabase } from "@/integrations/supabase/client";
 
 type IntegrationsManagerProps = {
@@ -50,42 +49,16 @@ export const IntegrationsManager = ({ botId }: IntegrationsManagerProps) => {
     return integration?.active ? 'connected' : 'disconnected';
   };
 
-  const getIntegrationCount = () => {
+  const getActiveIntegrationsCount = () => {
     return integrations.filter(i => i.active).length;
   };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Integrações
-          </CardTitle>
-          <CardDescription>
-            Configure integrações com diferentes plataformas de mensagens
-          </CardDescription>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge variant="secondary">
-              {getIntegrationCount()} ativa{getIntegrationCount() !== 1 ? 's' : ''}
-            </Badge>
-          </div>
-        </CardHeader>
-      </Card>
+      <IntegrationsHeader activeIntegrationsCount={getActiveIntegrationsCount()} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-1">
-          <TabsTrigger value="whatsapp" className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            WhatsApp
-            <Badge 
-              variant={getIntegrationStatus('whatsapp') === 'connected' ? 'default' : 'secondary'}
-              className="ml-auto"
-            >
-              {getIntegrationStatus('whatsapp') === 'connected' ? 'Conectado' : 'Desconectado'}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
+        <IntegrationsTabsList whatsappStatus={getIntegrationStatus('whatsapp')} />
 
         <TabsContent value="whatsapp" className="space-y-4">
           <WhatsAppConfig botId={botId} onConfigChange={fetchIntegrations} />
