@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -15,6 +15,7 @@ import {
 import { VoiceModel, VoiceProviderCredential } from "@/types/provider";
 import { createProviderCredential, updateProviderCredential, validateVoiceProviderApiKey } from "@/services/providerCredentials";
 import { voiceProviders } from "@/services/voiceProviders";
+import { useVoice } from "@/hooks/useVoice";
 
 type VoiceCredentialFormProps = {
   credential?: VoiceProviderCredential;
@@ -34,6 +35,8 @@ export const VoiceCredentialForm = ({
   const [isValidated, setIsValidated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<VoiceModel[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>("");
+  const { textToSpeech, isProcessing } = useVoice();
 
   const isEditing = !!credential;
 
@@ -55,12 +58,24 @@ export const VoiceCredentialForm = ({
       const voices = await validateVoiceProviderApiKey(providerId, apiKey);
       setAvailableVoices(voices);
       setIsValidated(true);
+      if (voices.length > 0) {
+        setSelectedVoice(voices[0].id);
+      }
       toast.success("API Key validada com sucesso!");
     } catch (error) {
       toast.error(error.message || "Erro ao validar API Key");
     } finally {
       setIsValidating(false);
     }
+  };
+
+  const previewVoice = async () => {
+    if (!selectedVoice) {
+      toast.error("Selecione uma voz para testar");
+      return;
+    }
+
+    await textToSpeech("Olá! Esta é uma prévia da voz selecionada.", selectedVoice);
   };
 
   const handleSubmit = async () => {
@@ -115,6 +130,7 @@ export const VoiceCredentialForm = ({
               setProviderId(value);
               setIsValidated(false);
               setAvailableVoices([]);
+              setSelectedVoice("");
             }}
             disabled={isEditing}
           >
@@ -141,6 +157,7 @@ export const VoiceCredentialForm = ({
                 setApiKey(e.target.value);
                 setIsValidated(false);
                 setAvailableVoices([]);
+                setSelectedVoice("");
               }}
               placeholder="Digite sua API Key"
             />
@@ -157,13 +174,44 @@ export const VoiceCredentialForm = ({
         </div>
 
         {isValidated && availableVoices.length > 0 && (
-          <div className="mt-4 p-4 bg-green-50 rounded border border-green-200">
-            <p className="text-green-700 text-sm mb-2">
+          <div className="mt-4 p-4 bg-green-50 rounded border border-green-200 space-y-4">
+            <p className="text-green-700 text-sm">
               ✓ API Key validada com sucesso!
             </p>
             <p className="text-sm text-gray-600">
               {availableVoices.length} vozes disponíveis
             </p>
+            
+            <div className="space-y-2">
+              <Label>Voz Padrão</Label>
+              <div className="flex gap-2">
+                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma voz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVoices.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id}>
+                        {voice.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={previewVoice}
+                  disabled={!selectedVoice || isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

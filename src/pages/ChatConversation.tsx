@@ -39,6 +39,12 @@ const ChatConversation = () => {
     setMessages
   );
 
+  // Voice configuration from agent
+  const voiceConfig = {
+    enabled: !!(agent?.voice_credential_id && agent?.voice_model),
+    voiceId: agent?.voice_model,
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -67,13 +73,24 @@ const ChatConversation = () => {
             <div className="flex-1 flex flex-col h-screen">
               <ChatHeader agentName={agent?.name || 'Agente'} />
               
+              {voiceConfig.enabled && (
+                <div className="px-4 py-2 bg-blue-50 border-b">
+                  <Badge variant="outline" className="text-blue-600">
+                    🎤 Voice Chat Ativado
+                  </Badge>
+                </div>
+              )}
+              
               <div className="flex-1 overflow-auto p-4">
                 <ErrorBoundary fallback={
                   <div className="p-4 text-center text-red-500">
                     Erro ao carregar mensagens
                   </div>
                 }>
-                  <MessageList messages={messages} />
+                  <MessageList 
+                    messages={messages} 
+                    voiceConfig={voiceConfig}
+                  />
                 </ErrorBoundary>
               </div>
               
