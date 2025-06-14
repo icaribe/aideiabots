@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          bot_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bots: {
         Row: {
           api_key: string | null
@@ -85,6 +120,60 @@ export type Database = {
           },
         ]
       }
+      conversation_metrics: {
+        Row: {
+          bot_id: string
+          conversation_id: string
+          ended_at: string | null
+          id: string
+          message_count: number | null
+          resolved: boolean | null
+          response_time_avg: number | null
+          satisfaction_score: number | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          conversation_id: string
+          ended_at?: string | null
+          id?: string
+          message_count?: number | null
+          resolved?: boolean | null
+          response_time_avg?: number | null
+          satisfaction_score?: number | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          conversation_id?: string
+          ended_at?: string | null
+          id?: string
+          message_count?: number | null
+          resolved?: boolean | null
+          response_time_avg?: number | null
+          satisfaction_score?: number | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_metrics_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_metrics_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           bot_id: string
@@ -110,6 +199,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "conversations_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_metrics: {
+        Row: {
+          avg_response_time: number | null
+          avg_satisfaction: number | null
+          bot_id: string
+          conversations_completed: number | null
+          conversations_started: number | null
+          created_at: string
+          date: string
+          id: string
+          total_messages: number | null
+          user_id: string
+        }
+        Insert: {
+          avg_response_time?: number | null
+          avg_satisfaction?: number | null
+          bot_id: string
+          conversations_completed?: number | null
+          conversations_started?: number | null
+          created_at?: string
+          date: string
+          id?: string
+          total_messages?: number | null
+          user_id: string
+        }
+        Update: {
+          avg_response_time?: number | null
+          avg_satisfaction?: number | null
+          bot_id?: string
+          conversations_completed?: number | null
+          conversations_started?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          total_messages?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_metrics_bot_id_fkey"
             columns: ["bot_id"]
             isOneToOne: false
             referencedRelation: "bots"

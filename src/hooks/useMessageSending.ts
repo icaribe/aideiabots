@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Conversation, Message } from "@/types/chat";
 import { useRetry } from "@/hooks/useRetry";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function useMessageSending(
   agentId: string | undefined,
@@ -16,9 +17,12 @@ export function useMessageSending(
   const navigate = useNavigate();
   const { executeWithRetry, isRetrying, retryCount } = useRetry();
   const { handleError } = useErrorHandler();
+  const { trackEvent, updateConversationMetrics } = useAnalytics();
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || !conversation) return;
+
+    const messageStartTime = Date.now();
 
     try {
       setSendingMessage(true);
@@ -41,6 +45,15 @@ export function useMessageSending(
       };
 
       setMessages(prev => [...prev, userMessage]);
+
+      // Track analytics: message sent by user
+      if (agentId) {
+        await trackEvent(agentId, 'message_sent', {
+          conversation_id: conversation.id,
+          message_length: content.length,
+          is_from_user: true
+        });
+      }
 
       // Salvar mensagem do usuário com retry
       await executeWithRetry(async () => {
@@ -96,6 +109,8 @@ export function useMessageSending(
         exponentialBackoff: true
       });
 
+      const responseTime = (Date.now() - messageStartTime) / 1000;
+
       if (response.data && response.data.response) {
         const botMessage: Message = {
           id: crypto.randomUUID(),
@@ -109,6 +124,23 @@ export function useMessageSending(
         };
 
         setMessages(prev => [...prev, botMessage]);
+
+        // Track analytics: message received from bot
+        if (agentId) {
+          await trackEvent(agentId, 'message_received', {
+            conversation_id: conversation.id,
+            response_time: responseTime,
+            message_length: response.data.response.length,
+            is_from_user: false
+          });
+
+          // Update conversation metrics
+          const currentMessageCount = await getCurrentMessageCount(conversation.id);
+          await updateConversationMetrics(conversation.id, agentId, {
+            message_count: currentMessageCount + 2, // user + bot message
+            response_time_avg: responseTime
+          });
+        }
       }
 
     } catch (error) {
@@ -147,12 +179,35 @@ export function useMessageSending(
             bot_id: agentId,
             error: true
           });
+
+        // Track analytics: error occurred
+        if (agentId) {
+          await trackEvent(agentId, 'message_error', {
+            conversation_id: conversation.id,
+            error_message: errorMessage,
+            response_time: (Date.now() - messageStartTime) / 1000
+          });
+        }
       } catch (dbError) {
         console.error("Erro ao salvar mensagem de erro:", dbError);
       }
       
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const getCurrentMessageCount = async (conversationId: string) => {
+    try {
+      const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId);
+      
+      return count || 0;
+    } catch (error) {
+      console.error('Error getting message count:', error);
+      return 0;
     }
   };
 

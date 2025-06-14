@@ -1,14 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Conversation, Message } from "@/types/chat";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function useConversations(agentId: string | undefined) {
   const navigate = useNavigate();
   const { errorState, handleError, clearError } = useErrorHandler();
+  const { trackEvent, updateConversationMetrics } = useAnalytics();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -106,6 +107,14 @@ export function useConversations(agentId: string | undefined) {
       }));
 
       setMessages(formattedMessages);
+
+      // Track analytics: conversation viewed
+      if (agentId) {
+        await trackEvent(agentId, 'conversation_viewed', {
+          conversation_id: selectedConversation.id,
+          message_count: formattedMessages.length
+        });
+      }
     } catch (error) {
       handleError(error, "selectConversation");
     }
@@ -137,6 +146,20 @@ export function useConversations(agentId: string | undefined) {
       setConversation(data);
       setConversations(prev => [data, ...prev]);
       setMessages([]);
+
+      // Track analytics: conversation started
+      if (agentId) {
+        await trackEvent(agentId, 'conversation_started', {
+          conversation_id: data.id
+        });
+
+        // Initialize conversation metrics
+        await updateConversationMetrics(data.id, agentId, {
+          started_at: new Date().toISOString(),
+          message_count: 0,
+          response_time_avg: 0
+        });
+      }
     } catch (error) {
       handleError(error, "createNewConversation");
     }
