@@ -1,6 +1,7 @@
 
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
@@ -14,7 +15,7 @@ import "./App.css";
 
 function App() {
   return (
-    <>
+    <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/dashboard" element={<Dashboard />} />
@@ -27,7 +28,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster richColors />
-    </>
+    </ErrorBoundary>
   );
 }
 
