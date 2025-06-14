@@ -10,6 +10,12 @@ import { Copy, ExternalLink, Phone, Settings, TestTube } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+type WhatsAppConfig = {
+  access_token?: string;
+  phone_number_id?: string;
+  verify_token?: string;
+};
+
 type WhatsAppConfigProps = {
   botId: string;
   onConfigChange?: () => void;
@@ -18,7 +24,7 @@ type WhatsAppConfigProps = {
 type Integration = {
   id: string;
   type: string;
-  config: any;
+  config: WhatsAppConfig;
   active: boolean;
   webhook_url?: string;
 };
@@ -53,10 +59,14 @@ export const WhatsAppConfig = ({ botId, onConfigChange }: WhatsAppConfigProps) =
       }
 
       if (data) {
-        setIntegration(data);
-        setAccessToken(data.config?.access_token || "");
-        setPhoneNumberId(data.config?.phone_number_id || "");
-        setVerifyToken(data.config?.verify_token || "whatsapp_webhook_token");
+        const config = data.config as WhatsAppConfig;
+        setIntegration({
+          ...data,
+          config
+        });
+        setAccessToken(config?.access_token || "");
+        setPhoneNumberId(config?.phone_number_id || "");
+        setVerifyToken(config?.verify_token || "whatsapp_webhook_token");
       }
     } catch (error) {
       console.error('Error fetching integration:', error);
@@ -66,7 +76,7 @@ export const WhatsAppConfig = ({ botId, onConfigChange }: WhatsAppConfigProps) =
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const config = {
+      const config: WhatsAppConfig = {
         access_token: accessToken,
         phone_number_id: phoneNumberId,
         verify_token: verifyToken,
@@ -86,7 +96,10 @@ export const WhatsAppConfig = ({ botId, onConfigChange }: WhatsAppConfigProps) =
 
       if (error) throw error;
 
-      setIntegration(data);
+      setIntegration({
+        ...data,
+        config
+      });
       toast.success("Configuração WhatsApp salva com sucesso!");
       onConfigChange?.();
     } catch (error) {

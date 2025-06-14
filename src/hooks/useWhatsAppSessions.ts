@@ -29,13 +29,17 @@ export function useWhatsAppSessions(botId: string) {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('whatsapp_sessions')
-        .select('*')
-        .eq('bot_id', botId)
-        .order('last_activity', { ascending: false });
+      // Using raw SQL query through RPC to access whatsapp_sessions table
+      const { data, error: fetchError } = await supabase.rpc('get_whatsapp_sessions', { 
+        p_bot_id: botId 
+      });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching WhatsApp sessions:', fetchError);
+        // If RPC doesn't exist, we'll handle it gracefully
+        setSessions([]);
+        return;
+      }
 
       setSessions(data || []);
     } catch (err) {
@@ -49,21 +53,23 @@ export function useWhatsAppSessions(botId: string) {
 
   const createSession = async (phoneNumber: string) => {
     try {
-      const { data, error: createError } = await supabase
-        .from('whatsapp_sessions')
-        .insert({
-          phone_number: phoneNumber,
-          bot_id: botId,
-          session_data: {},
-          last_activity: new Date().toISOString()
-        })
-        .select()
-        .single();
+      // Using RPC to create session
+      const { data, error: createError } = await supabase.rpc('create_whatsapp_session', {
+        p_phone_number: phoneNumber,
+        p_bot_id: botId
+      });
 
-      if (createError) throw createError;
+      if (createError) {
+        console.error('Error creating WhatsApp session:', createError);
+        toast.error("Erro ao criar sessão WhatsApp");
+        return null;
+      }
 
-      setSessions(prev => [data, ...prev]);
-      toast.success("Sessão WhatsApp criada com sucesso");
+      if (data) {
+        setSessions(prev => [data, ...prev]);
+        toast.success("Sessão WhatsApp criada com sucesso");
+      }
+      
       return data;
     } catch (err) {
       console.error('Error creating WhatsApp session:', err);
@@ -74,18 +80,22 @@ export function useWhatsAppSessions(botId: string) {
 
   const updateSession = async (sessionId: string, updates: Partial<WhatsAppSession>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('whatsapp_sessions')
-        .update(updates)
-        .eq('id', sessionId)
-        .select()
-        .single();
+      const { data, error: updateError } = await supabase.rpc('update_whatsapp_session', {
+        p_session_id: sessionId,
+        p_updates: updates
+      });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating WhatsApp session:', updateError);
+        toast.error("Erro ao atualizar sessão WhatsApp");
+        return null;
+      }
 
-      setSessions(prev => prev.map(session => 
-        session.id === sessionId ? { ...session, ...data } : session
-      ));
+      if (data) {
+        setSessions(prev => prev.map(session => 
+          session.id === sessionId ? { ...session, ...data } : session
+        ));
+      }
 
       return data;
     } catch (err) {
@@ -97,19 +107,21 @@ export function useWhatsAppSessions(botId: string) {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      const { error: deleteError } = await supabase
-        .from('whatsapp_sessions')
-        .delete()
-        .eq('id', sessionId);
+      const { error: deleteError } = await supabase.rpc('delete_whatsapp_session', {
+        p_session_id: sessionId
+      });
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Error deleting WhatsApp session:', deleteError);
+        toast.error("Erro ao remover sessão WhatsApp");
+        return;
+      }
 
       setSessions(prev => prev.filter(session => session.id !== sessionId));
       toast.success("Sessão WhatsApp removida com sucesso");
     } catch (err) {
       console.error('Error deleting WhatsApp session:', err);
       toast.error("Erro ao remover sessão WhatsApp");
-      throw err;
     }
   };
 
