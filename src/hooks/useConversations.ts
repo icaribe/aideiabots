@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Conversation, Message } from "@/types/chat";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
 
 export function useConversations(agentId: string | undefined) {
   const navigate = useNavigate();
+  const { errorState, handleError, clearError } = useErrorHandler();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -16,6 +18,9 @@ export function useConversations(agentId: string | undefined) {
   useEffect(() => {
     const fetchAgent = async () => {
       try {
+        setLoading(true);
+        clearError();
+        
         if (!agentId) return;
 
         const { data, error } = await supabase
@@ -25,8 +30,7 @@ export function useConversations(agentId: string | undefined) {
           .single();
 
         if (error) {
-          console.error("Error fetching agent:", error);
-          toast.error("Erro ao carregar o agente");
+          handleError(error, "fetchAgent");
           navigate("/chat");
           return;
         }
@@ -34,15 +38,14 @@ export function useConversations(agentId: string | undefined) {
         setAgent(data);
         await fetchConversations();
       } catch (error) {
-        console.error("Error:", error);
-        toast.error("Erro ao carregar o agente");
+        handleError(error, "fetchAgent");
       } finally {
         setLoading(false);
       }
     };
 
     fetchAgent();
-  }, [agentId, navigate]);
+  }, [agentId, navigate, handleError, clearError]);
 
   const fetchConversations = async () => {
     try {
@@ -60,8 +63,7 @@ export function useConversations(agentId: string | undefined) {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error("Error fetching conversations:", error);
-        toast.error("Erro ao carregar as conversas");
+        handleError(error, "fetchConversations");
         return;
       }
 
@@ -73,8 +75,7 @@ export function useConversations(agentId: string | undefined) {
         await createNewConversation();
       }
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Erro ao carregar as conversas");
+      handleError(error, "fetchConversations");
     }
   };
 
@@ -89,8 +90,7 @@ export function useConversations(agentId: string | undefined) {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error("Error fetching messages:", error);
-        toast.error("Erro ao carregar as mensagens");
+        handleError(error, "selectConversation");
         return;
       }
 
@@ -102,14 +102,12 @@ export function useConversations(agentId: string | undefined) {
         created_at: msg.created_at,
         bot_id: msg.bot_id || "",
         user_id: msg.user_id,
-        // Convert the error property to a boolean explicitly
-        error: Boolean('error' in msg && msg.error)
+        error: Boolean(msg.error)
       }));
 
       setMessages(formattedMessages);
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Erro ao carregar as mensagens");
+      handleError(error, "selectConversation");
     }
   };
 
@@ -132,8 +130,7 @@ export function useConversations(agentId: string | undefined) {
         .single();
 
       if (error) {
-        console.error("Error creating conversation:", error);
-        toast.error("Erro ao criar nova conversa");
+        handleError(error, "createNewConversation");
         return;
       }
 
@@ -141,8 +138,15 @@ export function useConversations(agentId: string | undefined) {
       setConversations(prev => [data, ...prev]);
       setMessages([]);
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Erro ao criar nova conversa");
+      handleError(error, "createNewConversation");
+    }
+  };
+
+  const retryOperation = () => {
+    clearError();
+    if (agentId) {
+      setLoading(true);
+      fetchConversations();
     }
   };
 
@@ -154,6 +158,8 @@ export function useConversations(agentId: string | undefined) {
     messages,
     setMessages,
     selectConversation,
-    createNewConversation
+    createNewConversation,
+    error: errorState.error,
+    retryOperation
   };
 }

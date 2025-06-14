@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Conversation, Message } from "@/types/chat";
 import { useRetry } from "@/hooks/useRetry";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
 
 export function useMessageSending(
   agentId: string | undefined,
@@ -14,6 +15,7 @@ export function useMessageSending(
   const [sendingMessage, setSendingMessage] = useState(false);
   const navigate = useNavigate();
   const { executeWithRetry, isRetrying, retryCount } = useRetry();
+  const { handleError } = useErrorHandler();
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || !conversation) return;
@@ -40,7 +42,7 @@ export function useMessageSending(
 
       setMessages(prev => [...prev, userMessage]);
 
-      // Salvar mensagem do usuário
+      // Salvar mensagem do usuário com retry
       await executeWithRetry(async () => {
         const { error: messageError } = await supabase
           .from('messages')
@@ -58,8 +60,23 @@ export function useMessageSending(
         }
       }, { maxAttempts: 2 });
 
-      // Processar mensagem com retry
+      // Processar mensagem com retry e validação
       const response = await executeWithRetry(async () => {
+        // Validar se o agente existe e tem configurações válidas
+        const { data: botData, error: botError } = await supabase
+          .from('bots')
+          .select('llm_credential_id, llm_provider, model')
+          .eq('id', agentId)
+          .single();
+
+        if (botError || !botData) {
+          throw new Error("Agente não encontrado ou configuração inválida");
+        }
+
+        if (!botData.llm_credential_id) {
+          throw new Error("Agente não possui credenciais configuradas. Configure nas configurações do projeto.");
+        }
+
         const result = await supabase.functions.invoke('chat', {
           body: { 
             botId: agentId,
@@ -95,34 +112,31 @@ export function useMessageSending(
       }
 
     } catch (error) {
-      console.error("Error sending message:", error);
+      handleError(error, "sendMessage");
       
-      let errorMessage = "Erro desconhecido ao processar mensagem";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        
-        if (errorMessage.includes("API") && errorMessage.includes("Groq")) {
-          errorMessage += ". Por favor, adicione a chave API do Groq nas configurações do projeto.";
-        }
-      }
-      
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      const errorResponseMessage: Message = {
-        id: crypto.randomUUID(),
-        content: errorMessage,
-        is_from_user: false,
-        conversation_id: conversation?.id || "",
-        created_at: new Date().toISOString(),
-        error: true,
-        bot_id: agentId || "",
-        user_id: currentSession?.user?.id || ""
-      };
-      
-      setMessages(prev => [...prev, errorResponseMessage]);
-      
+      // Salvar mensagem de erro no banco
       try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        let errorMessage = "Erro desconhecido ao processar mensagem";
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        
+        const errorResponseMessage: Message = {
+          id: crypto.randomUUID(),
+          content: errorMessage,
+          is_from_user: false,
+          conversation_id: conversation?.id || "",
+          created_at: new Date().toISOString(),
+          error: true,
+          bot_id: agentId || "",
+          user_id: currentSession?.user?.id || ""
+        };
+        
+        setMessages(prev => [...prev, errorResponseMessage]);
+        
         await supabase
           .from('messages')
           .insert({

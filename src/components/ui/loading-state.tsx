@@ -7,13 +7,17 @@ interface LoadingStateProps {
   size?: "sm" | "md" | "lg";
   variant?: "default" | "card" | "inline";
   className?: string;
+  showProgress?: boolean;
+  progress?: number;
 }
 
 export const LoadingState = ({ 
   message = "Carregando...", 
   size = "md",
   variant = "default",
-  className 
+  className,
+  showProgress = false,
+  progress = 0
 }: LoadingStateProps) => {
   const sizeClasses = {
     sm: "h-4 w-4",
@@ -29,8 +33,18 @@ export const LoadingState = ({
 
   return (
     <div className={cn(variants[variant], className)}>
-      <Loader2 className={cn("animate-spin text-primary", sizeClasses[size])} />
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <div className="flex flex-col items-center space-y-3">
+        <Loader2 className={cn("animate-spin text-primary", sizeClasses[size])} />
+        <p className="text-sm text-muted-foreground text-center">{message}</p>
+        {showProgress && (
+          <div className="w-48 bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

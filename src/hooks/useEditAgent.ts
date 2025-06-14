@@ -4,9 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Step, IntentConfig } from "@/types/agent";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { useDataValidation } from "@/hooks/useDataValidation";
 
 export const useEditAgent = (id: string | undefined) => {
   const navigate = useNavigate();
+  const { errorState, handleError, clearError } = useErrorHandler();
+  const { validateAgent } = useDataValidation();
+  
   const [currentStep, setCurrentStep] = useState<Step>("type");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
@@ -24,10 +29,14 @@ export const useEditAgent = (id: string | undefined) => {
     examples: [""],
     webhookUrl: ""
   }]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchAgent = async () => {
       try {
+        setLoading(true);
+        clearError();
+        
         const { data: agent, error } = await supabase
           .from('bots')
           .select(`
@@ -37,7 +46,10 @@ export const useEditAgent = (id: string | undefined) => {
           .eq('id', id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          handleError(error, "fetchAgent");
+          return;
+        }
 
         if (agent) {
           setSelectedType(agent.provider || 'custom');
@@ -49,7 +61,6 @@ export const useEditAgent = (id: string | undefined) => {
           setSelectedVoiceModel(agent.voice_model || null);
           setAgentName(agent.name);
           setAgentDescription(agent.description || '');
-          // Use webhook_url for whatsapp_number
           setWhatsappNumber(agent.webhook_url || '');
           
           if (agent.intents && agent.intents.length > 0) {
@@ -62,23 +73,33 @@ export const useEditAgent = (id: string | undefined) => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar agente:', error);
-        toast.error("Erro ao carregar dados do agente");
+        handleError(error, "fetchAgent");
+      } finally {
+        setLoading(false);
       }
     };
 
     if (id) {
       fetchAgent();
     }
-  }, [id]);
+  }, [id, handleError, clearError]);
 
   const handleUpdateAgent = async () => {
-    if (!agentName) {
-      toast.error("Por favor, preencha o nome do agente");
-      return;
-    }
-
     try {
+      setLoading(true);
+      clearError();
+
+      // Validar dados do agente
+      const agentData = {
+        name: agentName,
+        description: agentDescription,
+        llm_provider: selectedProvider,
+        model: selectedModel,
+        llm_credential_id: selectedCredentialId
+      };
+
+      validateAgent(agentData);
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -105,21 +126,24 @@ export const useEditAgent = (id: string | undefined) => {
         .eq('id', id);
 
       if (botError) {
-        throw botError;
+        handleError(botError, "updateAgent");
+        return;
       }
 
-      // Apenas processe as intenções se houver pelo menos uma com nome preenchido
+      // Validar e processar intents
       const validIntents = intents.filter(intent => intent.name.trim() !== "");
       if (validIntents.length > 0) {
+        // Deletar intents existentes
         const { error: deleteIntentsError } = await supabase
           .from('intents')
           .delete()
           .eq('bot_id', id);
 
         if (deleteIntentsError) {
-          console.error("Erro ao atualizar intents:", deleteIntentsError);
+          console.error("Erro ao deletar intents:", deleteIntentsError);
         }
 
+        // Inserir novas intents
         const intentsToInsert = validIntents.map(intent => ({
           bot_id: id,
           name: intent.name,
@@ -133,32 +157,41 @@ export const useEditAgent = (id: string | undefined) => {
           .insert(intentsToInsert);
 
         if (intentsError) {
-          throw intentsError;
+          handleError(intentsError, "updateIntents");
+          return;
         }
       }
 
       toast.success("Agente atualizado com sucesso!");
       navigate("/agents");
     } catch (error) {
-      console.error("Erro ao atualizar agente:", error);
-      toast.error("Erro ao atualizar agente. Tente novamente.");
+      handleError(error, "updateAgent");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async () => {
     try {
+      setLoading(true);
+      clearError();
+      
       const { error } = await supabase
         .from('bots')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        handleError(error, "deleteAgent");
+        return;
+      }
 
       toast.success("Agente excluído com sucesso!");
       navigate("/agents");
     } catch (error) {
-      console.error('Erro ao excluir agente:', error);
-      toast.error("Erro ao excluir agente. Por favor, tente novamente.");
+      handleError(error, "deleteAgent");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,6 +221,8 @@ export const useEditAgent = (id: string | undefined) => {
     intents,
     setIntents,
     handleUpdateAgent,
-    handleDelete
+    handleDelete,
+    loading,
+    error: errorState.error
   };
 };

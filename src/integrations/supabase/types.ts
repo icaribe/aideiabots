@@ -157,6 +157,7 @@ export type Database = {
           bot_id: string
           created_at: string | null
           description: string | null
+          examples: string[] | null
           id: string
           name: string
           webhook_url: string
@@ -165,6 +166,7 @@ export type Database = {
           bot_id: string
           created_at?: string | null
           description?: string | null
+          examples?: string[] | null
           id?: string
           name: string
           webhook_url: string
@@ -173,6 +175,7 @@ export type Database = {
           bot_id?: string
           created_at?: string | null
           description?: string | null
+          examples?: string[] | null
           id?: string
           name?: string
           webhook_url?: string
@@ -193,6 +196,7 @@ export type Database = {
           content: string
           conversation_id: string | null
           created_at: string
+          error: boolean | null
           id: string
           is_from_user: boolean | null
           user_id: string
@@ -202,6 +206,7 @@ export type Database = {
           content: string
           conversation_id?: string | null
           created_at?: string
+          error?: boolean | null
           id?: string
           is_from_user?: boolean | null
           user_id: string
@@ -211,6 +216,7 @@ export type Database = {
           content?: string
           conversation_id?: string | null
           created_at?: string
+          error?: boolean | null
           id?: string
           is_from_user?: boolean | null
           user_id?: string
