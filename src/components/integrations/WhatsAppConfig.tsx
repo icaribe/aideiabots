@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, ExternalLink, Phone, Settings, TestTube } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { WhatsAppSessions } from "./WhatsAppSessions";
 
 type WhatsAppConfig = {
   access_token?: string;
@@ -326,6 +326,10 @@ export const WhatsAppConfig = ({ botId, onConfigChange }: WhatsAppConfigProps) =
           )}
         </CardContent>
       </Card>
+
+      {integration?.active && (
+        <WhatsAppSessions botId={botId} />
+      )}
     </div>
   );
 };

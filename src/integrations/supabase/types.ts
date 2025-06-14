@@ -261,6 +261,7 @@ export type Database = {
           created_at: string | null
           id: string
           type: string
+          webhook_url: string | null
         }
         Insert: {
           active?: boolean
@@ -269,6 +270,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           type: string
+          webhook_url?: string | null
         }
         Update: {
           active?: boolean
@@ -277,6 +279,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           type?: string
+          webhook_url?: string | null
         }
         Relationships: [
           {
@@ -430,6 +433,51 @@ export type Database = {
           plan?: string
         }
         Relationships: []
+      }
+      whatsapp_sessions: {
+        Row: {
+          bot_id: string
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          last_activity: string | null
+          phone_number: string
+          session_data: Json | null
+        }
+        Insert: {
+          bot_id: string
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_activity?: string | null
+          phone_number: string
+          session_data?: Json | null
+        }
+        Update: {
+          bot_id?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_activity?: string | null
+          phone_number?: string
+          session_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_sessions_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -29,12 +29,11 @@ export function useWhatsAppSessions(botId: string) {
       setLoading(true);
       setError(null);
 
-      // Direct query to the table since RPC functions aren't available yet
       const { data, error: fetchError } = await supabase
-        .from('integrations')
+        .from('whatsapp_sessions')
         .select('*')
         .eq('bot_id', botId)
-        .eq('type', 'whatsapp');
+        .order('last_activity', { ascending: false });
 
       if (fetchError) {
         console.error('Error fetching WhatsApp sessions:', fetchError);
@@ -43,9 +42,7 @@ export function useWhatsAppSessions(botId: string) {
         return;
       }
 
-      // For now, we'll work with integrations data
-      // Once whatsapp_sessions table is accessible, we can fetch actual sessions
-      setSessions([]);
+      setSessions(data || []);
     } catch (err) {
       console.error('Error fetching WhatsApp sessions:', err);
       setError(err instanceof Error ? err.message : 'Erro ao buscar sessões');
@@ -57,21 +54,27 @@ export function useWhatsAppSessions(botId: string) {
 
   const createSession = async (phoneNumber: string) => {
     try {
-      // For now, we'll return a mock session since RPC functions aren't available
-      const mockSession: WhatsAppSession = {
-        id: crypto.randomUUID(),
-        phone_number: phoneNumber,
-        conversation_id: null,
-        bot_id: botId,
-        session_data: {},
-        last_activity: new Date().toISOString(),
-        created_at: new Date().toISOString()
-      };
+      const { data, error: createError } = await supabase
+        .from('whatsapp_sessions')
+        .insert({
+          phone_number: phoneNumber,
+          bot_id: botId,
+          session_data: {},
+          last_activity: new Date().toISOString()
+        })
+        .select()
+        .single();
 
-      setSessions(prev => [mockSession, ...prev]);
+      if (createError) {
+        console.error('Error creating WhatsApp session:', createError);
+        toast.error("Erro ao criar sessão WhatsApp");
+        throw createError;
+      }
+
+      setSessions(prev => [data, ...prev]);
       toast.success("Sessão WhatsApp criada com sucesso");
       
-      return mockSession;
+      return data;
     } catch (err) {
       console.error('Error creating WhatsApp session:', err);
       toast.error("Erro ao criar sessão WhatsApp");
@@ -81,11 +84,27 @@ export function useWhatsAppSessions(botId: string) {
 
   const updateSession = async (sessionId: string, updates: Partial<WhatsAppSession>) => {
     try {
+      const { data, error: updateError } = await supabase
+        .from('whatsapp_sessions')
+        .update({
+          ...updates,
+          last_activity: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating WhatsApp session:', updateError);
+        toast.error("Erro ao atualizar sessão WhatsApp");
+        throw updateError;
+      }
+
       setSessions(prev => prev.map(session => 
-        session.id === sessionId ? { ...session, ...updates } : session
+        session.id === sessionId ? data : session
       ));
 
-      return updates;
+      return data;
     } catch (err) {
       console.error('Error updating WhatsApp session:', err);
       toast.error("Erro ao atualizar sessão WhatsApp");
@@ -95,6 +114,17 @@ export function useWhatsAppSessions(botId: string) {
 
   const deleteSession = async (sessionId: string) => {
     try {
+      const { error: deleteError } = await supabase
+        .from('whatsapp_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (deleteError) {
+        console.error('Error deleting WhatsApp session:', deleteError);
+        toast.error("Erro ao remover sessão WhatsApp");
+        throw deleteError;
+      }
+
       setSessions(prev => prev.filter(session => session.id !== sessionId));
       toast.success("Sessão WhatsApp removida com sucesso");
     } catch (err) {
