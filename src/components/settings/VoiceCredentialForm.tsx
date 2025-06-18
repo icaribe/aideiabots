@@ -75,7 +75,8 @@ export const VoiceCredentialForm = ({
       return;
     }
 
-    await textToSpeech("Olá! Esta é uma prévia da voz selecionada.", selectedVoice);
+    // Use the correct provider when testing the voice
+    await textToSpeech("Olá! Esta é uma prévia da voz selecionada.", selectedVoice, providerId);
   };
 
   const handleSubmit = async () => {
@@ -117,7 +118,7 @@ export const VoiceCredentialForm = ({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Minhas Vozes ElevenLabs"
+            placeholder="Ex: Minhas Vozes OpenAI"
             className="mt-1"
           />
         </div>

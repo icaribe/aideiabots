@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId, provider = 'elevenlabs', modelId } = await req.json();
+    const { text, voiceId, provider = 'openai', modelId } = await req.json();
 
     if (!text) {
       throw new Error('Text is required');
@@ -84,10 +84,25 @@ serve(async (req) => {
         }),
       });
     } else {
-      // Default to OpenAI
-      apiKey = Deno.env.get('OPENAI_API_KEY') || '';
+      // Use OpenAI - check for user credentials first, then fallback to environment
+      const { data: credentials } = await supabase
+        .from('provider_credentials')
+        .select('api_key')
+        .eq('user_id', user.id)
+        .eq('provider_type', 'voice')
+        .eq('provider_id', 'openai')
+        .single();
+
+      if (credentials && credentials.api_key) {
+        apiKey = credentials.api_key;
+        console.log('Using user OpenAI credentials');
+      } else {
+        apiKey = Deno.env.get('OPENAI_API_KEY') || '';
+        console.log('Using environment OpenAI credentials');
+      }
+
       if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
+        throw new Error('OpenAI API key not found. Please configure in Settings or contact support.');
       }
 
       const defaultVoice = voiceId || 'alloy';
