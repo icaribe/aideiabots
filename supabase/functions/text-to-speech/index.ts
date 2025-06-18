@@ -57,6 +57,7 @@ serve(async (req) => {
         .single();
 
       if (credError || !credentials) {
+        console.error('ElevenLabs credentials error:', credError);
         throw new Error('ElevenLabs credentials not found. Please configure in Settings.');
       }
 
@@ -84,8 +85,10 @@ serve(async (req) => {
         }),
       });
     } else {
-      // Use OpenAI - check for user credentials first, then fallback to environment
-      const { data: credentials } = await supabase
+      // Use OpenAI - check for user credentials first
+      console.log('Looking for OpenAI credentials for user:', user.id);
+      
+      const { data: credentials, error: credError } = await supabase
         .from('provider_credentials')
         .select('api_key')
         .eq('user_id', user.id)
@@ -93,12 +96,17 @@ serve(async (req) => {
         .eq('provider_id', 'openai')
         .single();
 
+      if (credError) {
+        console.error('Error fetching OpenAI credentials:', credError);
+      }
+
       if (credentials && credentials.api_key) {
         apiKey = credentials.api_key;
         console.log('Using user OpenAI credentials');
       } else {
+        // Fallback to environment variable
         apiKey = Deno.env.get('OPENAI_API_KEY') || '';
-        console.log('Using environment OpenAI credentials');
+        console.log('No user credentials found, trying environment OpenAI credentials');
       }
 
       if (!apiKey) {
