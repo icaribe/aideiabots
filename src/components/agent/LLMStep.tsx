@@ -22,7 +22,7 @@ import {
   fetchOpenRouterModels,
   fetchOllamaModels
 } from "@/services/llmProviders";
-import { LLLModel, LLMProviderCredential } from "@/types/provider";
+import { LLMModel, LLMProviderCredential } from "@/types/provider";
 import { getProviderCredentials, validateLLMProviderApiKey } from "@/services/providerCredentials";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
