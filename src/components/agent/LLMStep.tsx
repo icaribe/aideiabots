@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { llmProviders } from "@/constants/agent";
 import {
@@ -22,9 +22,10 @@ import {
   fetchOpenRouterModels,
   fetchOllamaModels
 } from "@/services/llmProviders";
-import { LLMModel, LLMProviderCredential } from "@/types/provider";
+import { LLLModel, LLMProviderCredential } from "@/types/provider";
 import { getProviderCredentials, validateLLMProviderApiKey } from "@/services/providerCredentials";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LLMStepProps {
   selectedProvider: string | null;
@@ -54,6 +55,7 @@ export const LLMStep = ({
   const [availableModels, setAvailableModels] = useState<LLMModel[]>([]);
   const [credentials, setCredentials] = useState<LLMProviderCredential[]>([]);
   const [useCredential, setUseCredential] = useState(true);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     loadCredentials();
@@ -99,13 +101,16 @@ export const LLMStep = ({
     if (!credential) return;
     
     setIsLoadingModels(true);
+    setValidationError(null);
     try {
       const models = await validateLLMProviderApiKey(credential.provider_id, credential.api_key);
       setAvailableModels(models);
       onProviderSelect(credential.provider_id);
+      toast.success("Modelos carregados com sucesso!");
     } catch (error) {
       console.error("Error loading models from credential:", error);
-      toast.error("Erro ao carregar modelos");
+      setValidationError(error.message);
+      toast.error("Erro ao carregar modelos: " + error.message);
     } finally {
       setIsLoadingModels(false);
     }
@@ -114,11 +119,13 @@ export const LLMStep = ({
   const handleProviderSelect = (providerId: string) => {
     onProviderSelect(providerId);
     setAvailableModels([]);
+    setValidationError(null);
     onModelSelect("");
   };
 
   const handleCredentialSelect = (credentialId: string) => {
     onCredentialSelect(credentialId);
+    setValidationError(null);
     onModelSelect(""); // Reset model when changing credential
   };
 
@@ -126,6 +133,7 @@ export const LLMStep = ({
     if (!apiKey.trim() || !selectedProvider) return;
 
     setIsLoadingModels(true);
+    setValidationError(null);
     try {
       let models: LLMModel[] = [];
       
@@ -154,7 +162,8 @@ export const LLMStep = ({
       toast.success("API Key validada com sucesso!");
     } catch (error) {
       console.error("Erro ao buscar modelos:", error);
-      toast.error(error.message || "Erro ao validar API Key");
+      setValidationError(error.message);
+      toast.error("Erro ao validar API Key: " + error.message);
       setAvailableModels([]);
     } finally {
       setIsLoadingModels(false);
@@ -195,6 +204,15 @@ export const LLMStep = ({
         </div>
       )}
 
+      {validationError && (
+        <Alert className="mb-4 border-orange-200 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            {validationError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {useCredential && credentials.length > 0 ? (
         <div className="space-y-4 mb-8">
           <div className="space-y-2">
@@ -220,6 +238,7 @@ export const LLMStep = ({
           {isLoadingModels && (
             <div className="flex items-center justify-center p-4">
               <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+              <span className="ml-2">Carregando modelos...</span>
             </div>
           )}
 

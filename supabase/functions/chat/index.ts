@@ -39,7 +39,11 @@ serve(async (req) => {
       throw new Error('Bot não encontrado');
     }
 
-    console.log('Bot configuration:', { llm_provider: bot.llm_provider, model: bot.model });
+    console.log('Bot configuration:', { 
+      llm_provider: bot.llm_provider, 
+      model: bot.model,
+      llm_credential_id: bot.llm_credential_id
+    });
 
     // Buscar credencial LLM se existir
     let apiKey = null;
@@ -56,6 +60,7 @@ serve(async (req) => {
       }
       
       apiKey = credential.api_key;
+      console.log('Using credential API key for provider:', bot.llm_provider);
     } else {
       // Fallback para variáveis de ambiente ou API key direta do bot
       switch (bot.llm_provider.toLowerCase()) {
@@ -122,7 +127,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in chat function:', error);
     
-    // Resposta mais detalhada para o front-end
     return new Response(
       JSON.stringify({ error: error.message || 'Erro interno do servidor' }),
       { 
@@ -176,8 +180,9 @@ async function handleAnthropicRequest(message, systemPrompt, bot) {
     },
     body: JSON.stringify({
       model: bot.model,
+      max_tokens: 1000,
+      system: systemPrompt,
       messages: [
-        { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
     }),
@@ -197,17 +202,24 @@ async function handleAnthropicRequest(message, systemPrompt, bot) {
 async function handleGeminiRequest(message, systemPrompt, bot) {
   console.log('Making Gemini request with model:', bot.model);
   
-  const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+  // Use the dynamic model from bot configuration
+  const modelName = bot.model || 'gemini-1.5-flash';
+  
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${bot.api_key}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': bot.api_key,
     },
     body: JSON.stringify({
       contents: [
-        { parts: [{ text: systemPrompt }] },
-        { parts: [{ text: message }] }
+        { 
+          parts: [{ text: `${systemPrompt}\n\nUsuário: ${message}` }]
+        }
       ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+      }
     }),
   });
 

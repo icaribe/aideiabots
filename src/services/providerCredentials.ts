@@ -87,45 +87,62 @@ export const deleteProviderCredential = async (id: string): Promise<void> => {
   }
 };
 
-// Validate an LLM provider API key and fetch models
+// Validate an LLM provider API key and fetch models with retry logic
 export const validateLLMProviderApiKey = async (
   providerId: string, 
-  apiKey: string
+  apiKey: string,
+  maxRetries: number = 2
 ): Promise<LLMModel[]> => {
-  try {
-    let models: string[] = [];
-    
-    switch (providerId) {
-      case 'groq':
-        models = await fetchGroqModels(apiKey);
-        break;
-      case 'openai':
-        models = await fetchOpenAIModels(apiKey);
-        break;
-      case 'anthropic':
-        models = await fetchAnthropicModels(apiKey);
-        break;
-      case 'gemini':
-        models = await fetchGeminiModels(apiKey);
-        break;
-      case 'openrouter':
-        models = await fetchOpenRouterModels(apiKey);
-        break;
-      case 'ollama':
-        models = await fetchOllamaModels();
-        break;
-      default:
-        throw new Error("Provedor não suportado");
-    }
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Validating ${providerId} API key (attempt ${attempt + 1}/${maxRetries + 1})`);
+      
+      let models: string[] = [];
+      
+      switch (providerId) {
+        case 'groq':
+          models = await fetchGroqModels(apiKey);
+          break;
+        case 'openai':
+          models = await fetchOpenAIModels(apiKey);
+          break;
+        case 'anthropic':
+          models = await fetchAnthropicModels(apiKey);
+          break;
+        case 'gemini':
+          models = await fetchGeminiModels(apiKey);
+          break;
+        case 'openrouter':
+          models = await fetchOpenRouterModels(apiKey);
+          break;
+        case 'ollama':
+          models = await fetchOllamaModels();
+          break;
+        default:
+          throw new Error("Provedor não suportado");
+      }
 
-    return models.map(modelId => ({
-      id: modelId,
-      name: modelId
-    }));
-  } catch (error) {
-    console.error(`Error validating ${providerId} API key:`, error);
-    throw new Error(`Falha ao validar API Key do ${providerId}: ${error.message}`);
+      console.log(`Successfully fetched ${models.length} models for ${providerId}`);
+      return models.map(modelId => ({
+        id: modelId,
+        name: modelId
+      }));
+    } catch (error) {
+      console.error(`Error validating ${providerId} API key (attempt ${attempt + 1}):`, error);
+      lastError = error;
+      
+      // Wait before retrying (exponential backoff)
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s...
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
+  
+  throw new Error(`Falha ao validar API Key do ${providerId} após ${maxRetries + 1} tentativas: ${lastError?.message}`);
 };
 
 // Validate a voice provider API key and fetch voices
