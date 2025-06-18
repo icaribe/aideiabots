@@ -1,4 +1,5 @@
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -13,13 +14,15 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = 'pNInz6obpgDQGcFmaJgB', modelId = 'eleven_multilingual_v2' } = await req.json();
+    const { text, voiceId, provider = 'elevenlabs', modelId } = await req.json();
 
     if (!text) {
       throw new Error('Text is required');
     }
 
-    // Get user's ElevenLabs credentials
+    console.log(`Processing text-to-speech with provider: ${provider}, voice: ${voiceId}`);
+
+    // Get user's credentials
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Authorization header is required');
@@ -40,45 +43,83 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    // Find ElevenLabs credentials
-    const { data: credentials, error: credError } = await supabase
-      .from('provider_credentials')
-      .select('api_key')
-      .eq('user_id', user.id)
-      .eq('provider_type', 'voice')
-      .eq('provider_id', 'elevenlabs')
-      .single();
+    let apiKey = '';
+    let response;
 
-    if (credError || !credentials) {
-      throw new Error('ElevenLabs credentials not found. Please configure in Settings.');
-    }
+    if (provider === 'elevenlabs') {
+      // Find ElevenLabs credentials
+      const { data: credentials, error: credError } = await supabase
+        .from('provider_credentials')
+        .select('api_key')
+        .eq('user_id', user.id)
+        .eq('provider_type', 'voice')
+        .eq('provider_id', 'elevenlabs')
+        .single();
 
-    // Call ElevenLabs TTS API
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': credentials.api_key,
-      },
-      body: JSON.stringify({
-        text,
-        model_id: modelId,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
+      if (credError || !credentials) {
+        throw new Error('ElevenLabs credentials not found. Please configure in Settings.');
+      }
+
+      apiKey = credentials.api_key;
+      const defaultVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB'; // Default Adam voice
+      const defaultModelId = modelId || 'eleven_multilingual_v2';
+
+      console.log(`Using ElevenLabs voice: ${defaultVoiceId}, model: ${defaultModelId}`);
+
+      // Call ElevenLabs TTS API
+      response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${defaultVoiceId}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
         },
-      }),
-    });
+        body: JSON.stringify({
+          text,
+          model_id: defaultModelId,
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5,
+          },
+        }),
+      });
+    } else {
+      // Default to OpenAI
+      apiKey = Deno.env.get('OPENAI_API_KEY') || '';
+      if (!apiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+
+      const defaultVoice = voiceId || 'alloy';
+      console.log(`Using OpenAI voice: ${defaultVoice}`);
+
+      // Call OpenAI TTS API
+      response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: text,
+          voice: defaultVoice,
+          response_format: 'mp3',
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`ElevenLabs API error: ${errorText}`);
+      console.error(`${provider} TTS API error: ${errorText}`);
+      throw new Error(`${provider} TTS API error: ${errorText}`);
     }
 
     // Convert audio to base64
     const audioBuffer = await response.arrayBuffer();
     const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+
+    console.log(`Successfully generated audio, size: ${audioBuffer.byteLength} bytes`);
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),

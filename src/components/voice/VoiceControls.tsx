@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { useVoice } from '@/hooks/useVoice';
@@ -33,7 +33,7 @@ export const VoiceControls = ({ onTranscription, disabled }: VoiceControlsProps)
   };
 
   // Listen for voice transcription events
-  useState(() => {
+  useEffect(() => {
     const handleVoiceTranscription = (event: CustomEvent) => {
       if (onTranscription) {
         onTranscription(event.detail.text);
@@ -45,7 +45,7 @@ export const VoiceControls = ({ onTranscription, disabled }: VoiceControlsProps)
     return () => {
       window.removeEventListener('voiceTranscription', handleVoiceTranscription as EventListener);
     };
-  });
+  }, [onTranscription]);
 
   return (
     <div className="flex items-center gap-2">

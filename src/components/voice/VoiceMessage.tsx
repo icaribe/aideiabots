@@ -7,9 +7,10 @@ import { useVoice } from '@/hooks/useVoice';
 interface VoiceMessageProps {
   text: string;
   voiceId?: string;
+  provider?: string;
 }
 
-export const VoiceMessage = ({ text, voiceId }: VoiceMessageProps) => {
+export const VoiceMessage = ({ text, voiceId, provider = 'elevenlabs' }: VoiceMessageProps) => {
   const { textToSpeech, isProcessing } = useVoice();
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -17,7 +18,7 @@ export const VoiceMessage = ({ text, voiceId }: VoiceMessageProps) => {
     if (isPlaying) return;
     
     setIsPlaying(true);
-    const audio = await textToSpeech(text, voiceId);
+    const audio = await textToSpeech(text, voiceId, provider);
     
     if (audio) {
       audio.onended = () => setIsPlaying(false);
