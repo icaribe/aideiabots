@@ -37,10 +37,42 @@ export const fetchElevenLabsVoices = async (apiKey: string) => {
   }
 };
 
-// Fetch OpenAI voices
+// Fetch OpenAI voices with REAL validation
 export const fetchOpenAIVoices = async (apiKey: string) => {
   try {
-    // OpenAI doesn't provide an API to list voices, so we return the fixed set
+    console.log('Validating OpenAI API key by making a test call...');
+    
+    // Make a real test call to OpenAI TTS API to validate the key
+    const testResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: 'test',
+        voice: 'alloy',
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!testResponse.ok) {
+      const errorData = await testResponse.json().catch(() => ({}));
+      console.error('OpenAI API validation failed:', errorData);
+      
+      if (testResponse.status === 401) {
+        throw new Error('API Key da OpenAI inválida. Verifique sua chave de API.');
+      } else if (testResponse.status === 429) {
+        throw new Error('Limite de uso da API OpenAI excedido. Tente novamente mais tarde.');
+      } else {
+        throw new Error(`Erro na API da OpenAI: ${errorData.error?.message || 'Erro desconhecido'}`);
+      }
+    }
+
+    console.log('OpenAI API key validated successfully');
+
+    // Only return the voices list after successful validation
     return [
       { id: 'alloy', name: 'Alloy' },
       { id: 'echo', name: 'Echo' },
@@ -50,7 +82,12 @@ export const fetchOpenAIVoices = async (apiKey: string) => {
       { id: 'shimmer', name: 'Shimmer' }
     ];
   } catch (error) {
-    console.error('Erro ao buscar vozes da OpenAI:', error);
-    throw new Error('Erro ao conectar com a API da OpenAI');
+    console.error('Erro ao validar API Key da OpenAI:', error);
+    if (error.message.includes('API Key da OpenAI inválida') || 
+        error.message.includes('Limite de uso') || 
+        error.message.includes('Erro na API da OpenAI')) {
+      throw error;
+    }
+    throw new Error('Erro ao conectar com a API da OpenAI. Verifique sua chave de API.');
   }
 };

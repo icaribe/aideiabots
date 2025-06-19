@@ -145,12 +145,14 @@ export const validateLLMProviderApiKey = async (
   throw new Error(`Falha ao validar API Key do ${providerId} após ${maxRetries + 1} tentativas: ${lastError?.message}`);
 };
 
-// Validate a voice provider API key and fetch voices
+// Validate a voice provider API key and fetch voices with improved error handling
 export const validateVoiceProviderApiKey = async (
   providerId: string, 
   apiKey: string
 ): Promise<VoiceModel[]> => {
   try {
+    console.log(`Starting validation for ${providerId} voice provider`);
+    
     let voices: any[] = [];
     
     switch (providerId) {
@@ -164,9 +166,19 @@ export const validateVoiceProviderApiKey = async (
         throw new Error("Provedor de voz não suportado");
     }
 
+    console.log(`Successfully validated ${providerId} and fetched ${voices.length} voices`);
     return voices;
   } catch (error) {
     console.error(`Error validating ${providerId} voice API key:`, error);
+    
+    // Pass through the specific error message from the provider validation
+    if (error.message.includes('API Key') || 
+        error.message.includes('inválida') || 
+        error.message.includes('Limite de uso') ||
+        error.message.includes('Erro na API')) {
+      throw error;
+    }
+    
     throw new Error(`Falha ao validar API Key do ${providerId}: ${error.message}`);
   }
 };
