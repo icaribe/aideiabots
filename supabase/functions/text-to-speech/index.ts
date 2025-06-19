@@ -88,16 +88,18 @@ serve(async (req) => {
       // Use OpenAI - check for user credentials first
       console.log('Looking for OpenAI credentials for user:', user.id);
       
+      // Try to get user credentials - handle the case where no records exist
       const { data: credentials, error: credError } = await supabase
         .from('provider_credentials')
         .select('api_key')
         .eq('user_id', user.id)
         .eq('provider_type', 'voice')
         .eq('provider_id', 'openai')
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle no records
 
       if (credError) {
         console.error('Error fetching OpenAI credentials:', credError);
+        throw new Error(`Database error: ${credError.message}`);
       }
 
       if (credentials && credentials.api_key) {
