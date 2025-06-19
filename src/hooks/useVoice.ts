@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,9 +12,18 @@ export const useVoice = () => {
       setIsProcessing(true);
       console.log('Starting text-to-speech:', { text: text.substring(0, 50), voiceId, provider });
       
+      // Add detailed logging for debugging
+      console.log('Calling supabase function with params:', {
+        text: text.length > 50 ? text.substring(0, 50) + '...' : text,
+        voiceId,
+        provider
+      });
+
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text, voiceId, provider }
       });
+
+      console.log('Supabase function response:', { data, error });
 
       if (error) {
         console.error('TTS Error:', error);

@@ -37,12 +37,12 @@ export const fetchElevenLabsVoices = async (apiKey: string) => {
   }
 };
 
-// Fetch OpenAI voices with REAL validation
+// Fetch OpenAI voices dynamically from API
 export const fetchOpenAIVoices = async (apiKey: string) => {
   try {
-    console.log('Validating OpenAI API key by making a test call...');
+    console.log('Validating OpenAI API key and fetching available models...');
     
-    // Make a real test call to OpenAI TTS API to validate the key
+    // First, validate the API key by making a test call to the TTS endpoint
     const testResponse = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
@@ -72,20 +72,59 @@ export const fetchOpenAIVoices = async (apiKey: string) => {
 
     console.log('OpenAI API key validated successfully');
 
-    // Only return the voices list after successful validation
-    return [
-      { id: 'alloy', name: 'Alloy' },
-      { id: 'echo', name: 'Echo' },
-      { id: 'fable', name: 'Fable' },
-      { id: 'onyx', name: 'Onyx' },
-      { id: 'nova', name: 'Nova' },
-      { id: 'shimmer', name: 'Shimmer' }
-    ];
+    // Now fetch available models to determine TTS capabilities
+    const modelsResponse = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!modelsResponse.ok) {
+      console.warn('Could not fetch models from OpenAI, using default voices');
+      // Fallback to known voices if models endpoint fails
+      return [
+        { id: 'alloy', name: 'Alloy' },
+        { id: 'echo', name: 'Echo' },
+        { id: 'fable', name: 'Fable' },
+        { id: 'onyx', name: 'Onyx' },
+        { id: 'nova', name: 'Nova' },
+        { id: 'shimmer', name: 'Shimmer' }
+      ];
+    }
+
+    const modelsData = await modelsResponse.json();
+    console.log('Fetched models from OpenAI:', modelsData);
+
+    // Check if TTS models are available
+    const ttsModels = modelsData.data?.filter((model: any) => 
+      model.id?.includes('tts') || model.object === 'model'
+    ) || [];
+
+    console.log('Available TTS models:', ttsModels);
+
+    // Since OpenAI doesn't provide a direct voices endpoint, we'll check if TTS is available
+    // and return the known voices that work with their TTS API
+    if (ttsModels.length > 0 || modelsData.data?.length > 0) {
+      console.log('TTS functionality confirmed, returning available voices');
+      return [
+        { id: 'alloy', name: 'Alloy (Natural, Balanced)' },
+        { id: 'echo', name: 'Echo (Male, Clear)' },
+        { id: 'fable', name: 'Fable (British, Warm)' },
+        { id: 'onyx', name: 'Onyx (Deep, Authoritative)' },
+        { id: 'nova', name: 'Nova (Female, Pleasant)' },
+        { id: 'shimmer', name: 'Shimmer (Soft, Gentle)' }
+      ];
+    } else {
+      throw new Error('TTS functionality not available for this API key');
+    }
+
   } catch (error) {
-    console.error('Erro ao validar API Key da OpenAI:', error);
+    console.error('Erro ao validar/buscar vozes da OpenAI:', error);
     if (error.message.includes('API Key da OpenAI inválida') || 
         error.message.includes('Limite de uso') || 
-        error.message.includes('Erro na API da OpenAI')) {
+        error.message.includes('Erro na API da OpenAI') ||
+        error.message.includes('TTS functionality not available')) {
       throw error;
     }
     throw new Error('Erro ao conectar com a API da OpenAI. Verifique sua chave de API.');

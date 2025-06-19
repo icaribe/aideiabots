@@ -43,10 +43,13 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
+    console.log(`User authenticated: ${user.id}`);
+
     let apiKey = '';
     let response;
 
     if (provider === 'elevenlabs') {
+      console.log('Using ElevenLabs provider');
       // Find ElevenLabs credentials
       const { data: credentials, error: credError } = await supabase
         .from('provider_credentials')
@@ -85,6 +88,7 @@ serve(async (req) => {
         }),
       });
     } else {
+      console.log('Using OpenAI provider');
       // Use OpenAI - check for user credentials first
       console.log('Looking for OpenAI credentials for user:', user.id);
       
@@ -119,6 +123,7 @@ serve(async (req) => {
       console.log(`Using OpenAI voice: ${defaultVoice}`);
 
       // Call OpenAI TTS API
+      console.log(`Making OpenAI TTS request with voice: ${defaultVoice}`);
       response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -132,11 +137,13 @@ serve(async (req) => {
           response_format: 'mp3',
         }),
       });
+
+      console.log(`OpenAI API response status: ${response.status}`);
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`${provider} TTS API error: ${errorText}`);
+      console.error(`${provider} TTS API error (${response.status}): ${errorText}`);
       throw new Error(`${provider} TTS API error: ${errorText}`);
     }
 
