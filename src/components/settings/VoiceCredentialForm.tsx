@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import {
 import { VoiceModel, VoiceProviderCredential } from "@/types/provider";
 import { createProviderCredential, updateProviderCredential, validateVoiceProviderApiKey } from "@/services/providerCredentials";
 import { voiceProviders } from "@/services/voiceProviders";
+import { supabase } from "@/integrations/supabase/client";
 
 type VoiceCredentialFormProps = {
   credential?: VoiceProviderCredential;
@@ -85,39 +85,31 @@ export const VoiceCredentialForm = ({
       
       const testText = "Olá! Esta é uma prévia da voz selecionada para teste.";
       
-      const response = await fetch('/api/test-voice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Use Supabase Edge Function instead of local API route
+      const { data, error } = await supabase.functions.invoke('test-voice', {
+        body: {
           text: testText,
           voiceId: selectedVoice,
           provider: providerId,
           apiKey: apiKey
-        })
+        }
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Supabase function response:', { data, error });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Test voice API error:', errorText);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText };
-        }
-        
-        throw new Error(errorData.error || `Erro HTTP ${response.status}: ${errorText}`);
+      if (error) {
+        console.error('Test voice Edge Function error:', error);
+        throw new Error(error.message || 'Erro ao chamar função de teste de voz');
       }
 
-      const data = await response.json();
-      console.log('Response data:', data);
+      if (!data) {
+        throw new Error('Nenhuma resposta recebida da função de teste');
+      }
       
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       if (data.audioContent) {
         console.log('Creating audio from base64, length:', data.audioContent.length);
         
