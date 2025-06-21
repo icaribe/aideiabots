@@ -15,6 +15,13 @@ serve(async (req) => {
   try {
     const { text, voiceId, provider = 'openai', apiKey } = await req.json();
 
+    console.log('Test voice request received:', {
+      textLength: text?.length,
+      voiceId,
+      provider,
+      hasApiKey: !!apiKey
+    });
+
     if (!text) {
       throw new Error('Text is required');
     }
@@ -23,17 +30,14 @@ serve(async (req) => {
       throw new Error('API key is required for voice testing');
     }
 
-    console.log(`Testing voice with provider: ${provider}, voice: ${voiceId}`);
-
     let response;
 
     if (provider === 'elevenlabs') {
-      const defaultVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB'; // Default Adam voice
+      const defaultVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB';
       const defaultModelId = 'eleven_multilingual_v2';
 
-      console.log(`Using ElevenLabs voice: ${defaultVoiceId}, model: ${defaultModelId}`);
+      console.log(`Using ElevenLabs - Voice: ${defaultVoiceId}, Model: ${defaultModelId}`);
 
-      // Call ElevenLabs TTS API
       response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${defaultVoiceId}`, {
         method: 'POST',
         headers: {
@@ -53,10 +57,8 @@ serve(async (req) => {
     } else {
       // Default to OpenAI
       const defaultVoice = voiceId || 'alloy';
-      console.log(`Using OpenAI voice: ${defaultVoice}`);
+      console.log(`Using OpenAI - Voice: ${defaultVoice}`);
 
-      // Call OpenAI TTS API
-      console.log(`Making OpenAI TTS request with voice: ${defaultVoice}`);
       response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -70,21 +72,30 @@ serve(async (req) => {
           response_format: 'mp3',
         }),
       });
-
-      console.log(`OpenAI API response status: ${response.status}`);
     }
+
+    console.log(`API response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`${provider} TTS API error (${response.status}): ${errorText}`);
-      throw new Error(`${provider} TTS API error: ${errorText}`);
+      
+      let errorMessage = `${provider} TTS API error`;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || errorData.detail || errorText;
+      } catch {
+        errorMessage = errorText;
+      }
+      
+      throw new Error(errorMessage);
     }
 
     // Convert audio to base64
     const audioBuffer = await response.arrayBuffer();
     const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
 
-    console.log(`Successfully generated audio, size: ${audioBuffer.byteLength} bytes`);
+    console.log(`Successfully generated audio - Size: ${audioBuffer.byteLength} bytes, Base64 length: ${base64Audio.length}`);
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
