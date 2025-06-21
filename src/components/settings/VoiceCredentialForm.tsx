@@ -15,7 +15,6 @@ import {
 import { VoiceModel, VoiceProviderCredential } from "@/types/provider";
 import { createProviderCredential, updateProviderCredential, validateVoiceProviderApiKey } from "@/services/providerCredentials";
 import { voiceProviders } from "@/services/voiceProviders";
-import { useVoice } from "@/hooks/useVoice";
 
 type VoiceCredentialFormProps = {
   credential?: VoiceProviderCredential;
@@ -36,7 +35,7 @@ export const VoiceCredentialForm = ({
   const [isSaving, setIsSaving] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<VoiceModel[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>("");
-  const { textToSpeech, isProcessing } = useVoice();
+  const [isTestingVoice, setIsTestingVoice] = useState(false);
 
   const isEditing = !!credential;
 
@@ -75,8 +74,67 @@ export const VoiceCredentialForm = ({
       return;
     }
 
-    // Use the correct provider when testing the voice
-    await textToSpeech("Olá! Esta é uma prévia da voz selecionada.", selectedVoice, providerId);
+    if (!apiKey.trim()) {
+      toast.error("API Key é necessária para testar a voz");
+      return;
+    }
+
+    setIsTestingVoice(true);
+    try {
+      console.log('Testing voice with:', { provider: providerId, voice: selectedVoice });
+      
+      // Call the text-to-speech directly with the current API key
+      const response = await fetch('/api/test-voice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: "Olá! Esta é uma prévia da voz selecionada.",
+          voiceId: selectedVoice,
+          provider: providerId,
+          apiKey: apiKey // Pass the API key directly for testing
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao testar a voz');
+      }
+
+      const data = await response.json();
+      
+      if (data.audioContent) {
+        // Create audio from base64
+        const audioBlob = new Blob(
+          [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], 
+          { type: 'audio/mpeg' }
+        );
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        const audio = new Audio(audioUrl);
+        
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+        };
+
+        audio.onerror = (e) => {
+          console.error('Audio playback error:', e);
+          URL.revokeObjectURL(audioUrl);
+          toast.error('Erro ao reproduzir o áudio');
+        };
+        
+        await audio.play();
+        toast.success('Teste de voz reproduzido com sucesso!');
+      } else {
+        throw new Error('Nenhum conteúdo de áudio recebido');
+      }
+    } catch (error) {
+      console.error('Voice preview error:', error);
+      toast.error(error.message || 'Erro ao testar a voz');
+    } finally {
+      setIsTestingVoice(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -203,9 +261,9 @@ export const VoiceCredentialForm = ({
                   size="icon"
                   variant="outline"
                   onClick={previewVoice}
-                  disabled={!selectedVoice || isProcessing}
+                  disabled={!selectedVoice || isTestingVoice}
                 >
-                  {isProcessing ? (
+                  {isTestingVoice ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Volume2 className="h-4 w-4" />
