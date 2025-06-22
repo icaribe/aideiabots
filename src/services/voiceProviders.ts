@@ -15,6 +15,8 @@ export const voiceProviders = [
 // Fetch ElevenLabs voices
 export const fetchElevenLabsVoices = async (apiKey: string) => {
   try {
+    console.log('Validating ElevenLabs API key and fetching voices...');
+    
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: {
         'Accept': 'application/json',
@@ -22,18 +24,48 @@ export const fetchElevenLabsVoices = async (apiKey: string) => {
       }
     });
 
+    console.log('ElevenLabs API response status:', response.status);
+
     if (!response.ok) {
-      throw new Error('Falha ao buscar vozes da ElevenLabs');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('ElevenLabs API error:', errorData);
+      
+      if (response.status === 401) {
+        const message = errorData.detail?.message || 'API Key da ElevenLabs inválida';
+        if (message.includes('missing_permissions')) {
+          throw new Error('API Key da ElevenLabs não tem permissões necessárias. Verifique se a chave tem acesso às vozes.');
+        }
+        throw new Error('API Key da ElevenLabs inválida. Verifique sua chave de API.');
+      } else if (response.status === 429) {
+        throw new Error('Limite de uso da API ElevenLabs excedido. Tente novamente mais tarde.');
+      } else {
+        throw new Error(`Erro na API da ElevenLabs: ${errorData.detail?.message || 'Erro desconhecido'}`);
+      }
     }
 
     const data = await response.json();
+    console.log('ElevenLabs voices fetched successfully:', data.voices?.length || 0);
+    
+    if (!data.voices || !Array.isArray(data.voices)) {
+      throw new Error('Formato de resposta inválido da API ElevenLabs');
+    }
+
     return data.voices.map((voice: any) => ({
       id: voice.voice_id,
-      name: voice.name
+      name: `${voice.name} (${voice.category || 'Custom'})`
     }));
   } catch (error) {
     console.error('Erro ao buscar vozes da ElevenLabs:', error);
-    throw new Error('Erro ao conectar com a API da ElevenLabs');
+    
+    if (error.message.includes('API Key') || 
+        error.message.includes('inválida') || 
+        error.message.includes('Limite de uso') ||
+        error.message.includes('permissões') ||
+        error.message.includes('Erro na API')) {
+      throw error;
+    }
+    
+    throw new Error('Erro ao conectar com a API da ElevenLabs. Verifique sua conexão e chave de API.');
   }
 };
 
@@ -84,12 +116,12 @@ export const fetchOpenAIVoices = async (apiKey: string) => {
       console.warn('Could not fetch models from OpenAI, using default voices');
       // Fallback to known voices if models endpoint fails
       return [
-        { id: 'alloy', name: 'Alloy' },
-        { id: 'echo', name: 'Echo' },
-        { id: 'fable', name: 'Fable' },
-        { id: 'onyx', name: 'Onyx' },
-        { id: 'nova', name: 'Nova' },
-        { id: 'shimmer', name: 'Shimmer' }
+        { id: 'alloy', name: 'Alloy (Natural, Balanced)' },
+        { id: 'echo', name: 'Echo (Male, Clear)' },
+        { id: 'fable', name: 'Fable (British, Warm)' },
+        { id: 'onyx', name: 'Onyx (Deep, Authoritative)' },
+        { id: 'nova', name: 'Nova (Female, Pleasant)' },
+        { id: 'shimmer', name: 'Shimmer (Soft, Gentle)' }
       ];
     }
 

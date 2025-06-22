@@ -33,7 +33,7 @@ serve(async (req) => {
     let response;
 
     if (provider === 'elevenlabs') {
-      const defaultVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB';
+      const defaultVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB'; // Default Adam voice
       const defaultModelId = 'eleven_multilingual_v2';
 
       console.log(`Using ElevenLabs - Voice: ${defaultVoiceId}, Model: ${defaultModelId}`);
@@ -51,9 +51,44 @@ serve(async (req) => {
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.5,
+            style: 0.0,
+            use_speaker_boost: true
           },
         }),
       });
+
+      console.log(`ElevenLabs API response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`ElevenLabs TTS API error (${response.status}): ${errorText}`);
+        
+        let errorMessage = 'ElevenLabs TTS API error';
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.detail?.message) {
+            errorMessage = errorData.detail.message;
+            
+            if (errorMessage.includes('missing_permissions')) {
+              errorMessage = 'API Key não tem permissões necessárias para acessar vozes. Verifique as permissões no painel da ElevenLabs.';
+            } else if (response.status === 401) {
+              errorMessage = 'API Key da ElevenLabs inválida ou expirada.';
+            } else if (response.status === 429) {
+              errorMessage = 'Limite de uso da API ElevenLabs excedido. Tente novamente mais tarde.';
+            }
+          }
+        } catch {
+          if (response.status === 401) {
+            errorMessage = 'API Key da ElevenLabs inválida.';
+          } else if (response.status === 429) {
+            errorMessage = 'Limite de uso excedido.';
+          } else {
+            errorMessage = errorText || 'Erro desconhecido na API ElevenLabs';
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
     } else {
       // Default to OpenAI
       const defaultVoice = voiceId || 'alloy';
@@ -72,23 +107,29 @@ serve(async (req) => {
           response_format: 'mp3',
         }),
       });
-    }
 
-    console.log(`API response status: ${response.status}`);
+      console.log(`OpenAI API response status: ${response.status}`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`${provider} TTS API error (${response.status}): ${errorText}`);
-      
-      let errorMessage = `${provider} TTS API error`;
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.error?.message || errorData.detail || errorText;
-      } catch {
-        errorMessage = errorText;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`OpenAI TTS API error (${response.status}): ${errorText}`);
+        
+        let errorMessage = 'OpenAI TTS API error';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorText;
+          
+          if (response.status === 401) {
+            errorMessage = 'API Key da OpenAI inválida.';
+          } else if (response.status === 429) {
+            errorMessage = 'Limite de uso da API OpenAI excedido.';
+          }
+        } catch {
+          errorMessage = errorText || 'Erro desconhecido na API OpenAI';
+        }
+        
+        throw new Error(errorMessage);
       }
-      
-      throw new Error(errorMessage);
     }
 
     // Convert audio to base64
