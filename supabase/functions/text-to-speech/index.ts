@@ -50,7 +50,7 @@ serve(async (req) => {
 
     if (provider === 'elevenlabs') {
       console.log('Using ElevenLabs provider');
-      // Find ElevenLabs credentials
+      
       const { data: credentials, error: credError } = await supabase
         .from('provider_credentials')
         .select('api_key')
@@ -70,7 +70,7 @@ serve(async (req) => {
 
       console.log(`Using ElevenLabs voice: ${defaultVoiceId}, model: ${defaultModelId}`);
 
-      // Call ElevenLabs TTS API
+      // Call ElevenLabs TTS API with correct headers
       response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${defaultVoiceId}`, {
         method: 'POST',
         headers: {
@@ -83,23 +83,20 @@ serve(async (req) => {
           model_id: defaultModelId,
           voice_settings: {
             stability: 0.5,
-            similarity_boost: 0.5,
+            similarity_boost: 0.75,
           },
         }),
       });
     } else {
       console.log('Using OpenAI provider');
-      // Use OpenAI - check for user credentials first
-      console.log('Looking for OpenAI credentials for user:', user.id);
       
-      // Try to get user credentials - handle the case where no records exist
       const { data: credentials, error: credError } = await supabase
         .from('provider_credentials')
         .select('api_key')
         .eq('user_id', user.id)
         .eq('provider_type', 'voice')
         .eq('provider_id', 'openai')
-        .maybeSingle(); // Use maybeSingle instead of single to handle no records
+        .maybeSingle();
 
       if (credError) {
         console.error('Error fetching OpenAI credentials:', credError);
@@ -110,9 +107,8 @@ serve(async (req) => {
         apiKey = credentials.api_key;
         console.log('Using user OpenAI credentials');
       } else {
-        // Fallback to environment variable
         apiKey = Deno.env.get('OPENAI_API_KEY') || '';
-        console.log('No user credentials found, trying environment OpenAI credentials');
+        console.log('Using environment OpenAI credentials');
       }
 
       if (!apiKey) {
@@ -122,8 +118,6 @@ serve(async (req) => {
       const defaultVoice = voiceId || 'alloy';
       console.log(`Using OpenAI voice: ${defaultVoice}`);
 
-      // Call OpenAI TTS API
-      console.log(`Making OpenAI TTS request with voice: ${defaultVoice}`);
       response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -144,7 +138,34 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`${provider} TTS API error (${response.status}): ${errorText}`);
-      throw new Error(`${provider} TTS API error: ${errorText}`);
+      
+      let errorMessage = `Erro na API ${provider}`;
+      
+      if (provider === 'elevenlabs') {
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.detail?.message) {
+            errorMessage = errorData.detail.message;
+          }
+        } catch {
+          if (response.status === 401) {
+            errorMessage = 'API Key da ElevenLabs inválida.';
+          } else if (response.status === 429) {
+            errorMessage = 'Limite de uso da ElevenLabs excedido.';
+          } else {
+            errorMessage = `Erro ElevenLabs: ${errorText}`;
+          }
+        }
+      } else {
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorText;
+        } catch {
+          errorMessage = errorText;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     // Convert audio to base64

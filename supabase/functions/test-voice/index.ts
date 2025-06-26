@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -38,6 +37,7 @@ serve(async (req) => {
 
       console.log(`Using ElevenLabs - Voice: ${defaultVoiceId}, Model: ${defaultModelId}`);
 
+      // Use official ElevenLabs API endpoint with correct headers
       response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${defaultVoiceId}`, {
         method: 'POST',
         headers: {
@@ -50,7 +50,7 @@ serve(async (req) => {
           model_id: defaultModelId,
           voice_settings: {
             stability: 0.5,
-            similarity_boost: 0.5,
+            similarity_boost: 0.75,
             style: 0.0,
             use_speaker_boost: true
           },
@@ -63,34 +63,30 @@ serve(async (req) => {
         const errorText = await response.text();
         console.error(`ElevenLabs TTS API error (${response.status}): ${errorText}`);
         
-        let errorMessage = 'ElevenLabs TTS API error';
+        let errorMessage = 'Erro na API ElevenLabs';
+        
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.detail?.message) {
             errorMessage = errorData.detail.message;
-            
-            if (errorMessage.includes('missing_permissions')) {
-              errorMessage = 'API Key não tem permissões necessárias para acessar vozes. Verifique as permissões no painel da ElevenLabs.';
-            } else if (response.status === 401) {
-              errorMessage = 'API Key da ElevenLabs inválida ou expirada.';
-            } else if (response.status === 429) {
-              errorMessage = 'Limite de uso da API ElevenLabs excedido. Tente novamente mais tarde.';
-            }
           }
         } catch {
+          // Use status-based messages if JSON parsing fails
           if (response.status === 401) {
-            errorMessage = 'API Key da ElevenLabs inválida.';
+            errorMessage = 'API Key da ElevenLabs inválida ou expirada.';
           } else if (response.status === 429) {
-            errorMessage = 'Limite de uso excedido.';
+            errorMessage = 'Limite de uso da API ElevenLabs excedido. Tente novamente mais tarde.';
+          } else if (response.status === 422) {
+            errorMessage = 'Parâmetros inválidos enviados para a API ElevenLabs.';
           } else {
-            errorMessage = errorText || 'Erro desconhecido na API ElevenLabs';
+            errorMessage = `Erro HTTP ${response.status}: ${errorText}`;
           }
         }
         
         throw new Error(errorMessage);
       }
     } else {
-      // Default to OpenAI
+      // OpenAI implementation (unchanged)
       const defaultVoice = voiceId || 'alloy';
       console.log(`Using OpenAI - Voice: ${defaultVoice}`);
 
@@ -114,7 +110,7 @@ serve(async (req) => {
         const errorText = await response.text();
         console.error(`OpenAI TTS API error (${response.status}): ${errorText}`);
         
-        let errorMessage = 'OpenAI TTS API error';
+        let errorMessage = 'Erro na API OpenAI';
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.error?.message || errorText;
