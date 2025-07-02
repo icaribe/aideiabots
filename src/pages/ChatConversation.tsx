@@ -56,6 +56,7 @@ const ChatConversation = () => {
 
             <ChatInterface
               agentName={agent?.name || 'Agente'}
+              agentId={agent?.id}
               messages={messages}
               onSendMessage={sendMessage}
               sendingMessage={sendingMessage}

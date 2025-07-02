@@ -4,10 +4,14 @@ import { MessageInput } from "@/components/chat/MessageInput";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Badge } from "@/components/ui/badge";
+import { HotwordConfig } from "@/components/voice/HotwordConfig";
+import { useHotwordDetection } from "@/hooks/useHotwordDetection";
 import { Message } from "@/types/chat";
+import { useState } from "react";
 
 interface ChatInterfaceProps {
   agentName: string;
+  agentId?: string;
   messages: Message[];
   onSendMessage: (content: string) => void;
   sendingMessage: boolean;
@@ -18,21 +22,41 @@ interface ChatInterfaceProps {
 }
 
 export const ChatInterface = ({ 
-  agentName, 
+  agentName,
+  agentId,
   messages, 
   onSendMessage, 
   sendingMessage,
   voiceConfig 
 }: ChatInterfaceProps) => {
+  const [hotwordConfig, setHotwordConfig] = useState({
+    enabled: false,
+    keyword: agentName.toLowerCase() || 'assistente',
+    sensitivity: 0.8,
+    contextDuration: 5
+  });
+
+  const {
+    isListening,
+    isProcessingHotword,
+    toggleContinuousListening
+  } = useHotwordDetection(agentId, onSendMessage, hotwordConfig);
   return (
     <div className="flex-1 flex flex-col h-screen">
       <ChatHeader agentName={agentName} />
       
       {voiceConfig?.enabled && (
-        <div className="px-4 py-2 bg-blue-50 border-b">
+        <div className="px-4 py-2 bg-blue-50 dark:bg-blue-950 border-b space-y-2">
           <Badge variant="outline" className="text-blue-600">
             🎤 Voice Chat Ativado
           </Badge>
+          
+          <HotwordConfig
+            config={hotwordConfig}
+            onChange={setHotwordConfig}
+            isListening={isListening}
+            onToggleListening={toggleContinuousListening}
+          />
         </div>
       )}
       

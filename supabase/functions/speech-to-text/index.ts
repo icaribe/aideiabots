@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // Process base64 in chunks to prevent memory issues
@@ -44,11 +45,18 @@ serve(async (req) => {
   }
 
   try {
-    const { audioData, provider = 'openai' } = await req.json();
+    console.log('Speech-to-text request received');
+    const requestBody = await req.json();
+    console.log('Request body keys:', Object.keys(requestBody));
+    
+    const { audioData, provider = 'openai' } = requestBody;
 
     if (!audioData) {
+      console.error('No audio data provided');
       throw new Error('Audio data is required');
     }
+    
+    console.log('Audio data length:', audioData.length);
 
     console.log(`Processing speech-to-text with provider: ${provider}`);
 
@@ -100,9 +108,27 @@ serve(async (req) => {
       formData.append('audio', audioBlob, 'audio.webm');
     } else {
       // Default to OpenAI
-      apiKey = Deno.env.get('OPENAI_API_KEY') || '';
+      console.log('Using OpenAI provider for STT');
+      
+      // Try to get API key from user credentials first
+      const { data: credentials, error: credError } = await supabase
+        .from('provider_credentials')
+        .select('api_key')
+        .eq('user_id', user.id)
+        .eq('provider_type', 'llm')
+        .eq('provider_id', 'openai')
+        .maybeSingle();
+
+      if (credentials && credentials.api_key) {
+        apiKey = credentials.api_key;
+        console.log('Using user OpenAI credentials for STT');
+      } else {
+        apiKey = Deno.env.get('OPENAI_API_KEY') || '';
+        console.log('Using environment OpenAI credentials for STT');
+      }
+      
       if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
+        throw new Error('OpenAI API key not configured. Please add your API key in Settings.');
       }
 
       endpoint = 'https://api.openai.com/v1/audio/transcriptions';
@@ -112,6 +138,7 @@ serve(async (req) => {
       const audioBlob = new Blob([binaryAudio], { type: 'audio/webm' });
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'whisper-1');
+      formData.append('language', 'pt');
     }
 
     console.log(`Making request to ${endpoint}`);

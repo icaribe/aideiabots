@@ -87,9 +87,9 @@ export const VoiceControls = ({ onTranscription, disabled }: VoiceControlsProps)
 
       {(isPlaying || isRecording || isProcessing) && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          {isProcessing && "Processando..."}
-          {isRecording && "Gravando..."}
-          {isPlaying && "Reproduzindo..."}
+        {isProcessing && "Processando áudio..."}
+        {isRecording && "Gravando mensagem..."}
+        {isPlaying && "Reproduzindo resposta..."}
         </div>
       )}
     </div>
