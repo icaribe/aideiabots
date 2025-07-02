@@ -8,16 +8,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { IntentConfig } from "@/types/agent";
+import { VoiceConfigStep } from "./VoiceConfigStep";
 
 interface ConfigStepProps {
   agentName: string;
   agentDescription: string;
   whatsappNumber: string;
   intents: IntentConfig[];
+  selectedVoiceCredentialId?: string | null;
+  selectedVoiceProvider?: string | null;
+  selectedVoiceModel?: string | null;
   onAgentNameChange: (name: string) => void;
   onAgentDescriptionChange: (description: string) => void;
   onWhatsappNumberChange: (number: string) => void;
   onIntentsChange: (intents: IntentConfig[]) => void;
+  onVoiceCredentialSelect?: (credentialId: string | null) => void;
+  onVoiceProviderSelect?: (provider: string | null) => void;
+  onVoiceModelSelect?: (model: string | null) => void;
   onBack: () => void;
   onSubmit: () => void;
 }
@@ -27,10 +34,16 @@ export const ConfigStep = ({
   agentDescription,
   whatsappNumber,
   intents,
+  selectedVoiceCredentialId,
+  selectedVoiceProvider,
+  selectedVoiceModel,
   onAgentNameChange,
   onAgentDescriptionChange,
   onWhatsappNumberChange,
   onIntentsChange,
+  onVoiceCredentialSelect,
+  onVoiceProviderSelect,
+  onVoiceModelSelect,
   onBack,
   onSubmit
 }: ConfigStepProps) => {
@@ -221,6 +234,17 @@ export const ConfigStep = ({
           </Card>
         ))}
       </div>
+
+      {onVoiceCredentialSelect && (
+        <VoiceConfigStep
+          selectedVoiceCredentialId={selectedVoiceCredentialId}
+          selectedVoiceProvider={selectedVoiceProvider}
+          selectedVoiceModel={selectedVoiceModel}
+          onVoiceCredentialSelect={onVoiceCredentialSelect}
+          onVoiceProviderSelect={onVoiceProviderSelect}
+          onVoiceModelSelect={onVoiceModelSelect}
+        />
+      )}
 
       <div className="flex justify-between mt-8">
         <Button

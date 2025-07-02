@@ -31,14 +31,20 @@ export const fetchElevenLabsVoices = async (apiKey: string) => {
       
       if (response.status === 401) {
         const message = errorData.detail?.message || 'API Key da ElevenLabs inválida';
-        if (message.includes('missing_permissions')) {
-          throw new Error('API Key da ElevenLabs não tem permissões necessárias. Verifique se a chave tem acesso às vozes.');
+        if (message.includes('missing_permissions') || message.includes('insufficient_permissions')) {
+          throw new Error('API Key da ElevenLabs não tem permissões necessárias. Verifique se a chave tem acesso às vozes e TTS.');
+        } else if (message.includes('invalid') || message.includes('expired')) {
+          throw new Error('API Key da ElevenLabs inválida ou expirada. Verifique sua chave de API.');
         }
         throw new Error('API Key da ElevenLabs inválida. Verifique sua chave de API.');
       } else if (response.status === 429) {
         throw new Error('Limite de uso da API ElevenLabs excedido. Tente novamente mais tarde.');
+      } else if (response.status === 422) {
+        throw new Error('Parâmetros inválidos na requisição para ElevenLabs. Verifique sua configuração.');
+      } else if (response.status >= 500) {
+        throw new Error('Erro interno da API ElevenLabs. Tente novamente mais tarde.');
       } else {
-        throw new Error(`Erro na API da ElevenLabs: ${errorData.detail?.message || 'Erro desconhecido'}`);
+        throw new Error(`Erro na API da ElevenLabs (${response.status}): ${errorData.detail?.message || 'Erro desconhecido'}`);
       }
     }
 

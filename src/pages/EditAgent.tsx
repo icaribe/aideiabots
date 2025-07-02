@@ -22,6 +22,12 @@ const EditAgent = () => {
     setSelectedModel,
     selectedCredentialId,
     setSelectedCredentialId,
+    selectedVoiceCredentialId,
+    setSelectedVoiceCredentialId,
+    selectedVoiceProvider,
+    setSelectedVoiceProvider,
+    selectedVoiceModel,
+    setSelectedVoiceModel,
     agentName,
     setAgentName,
     agentDescription,
@@ -40,7 +46,7 @@ const EditAgent = () => {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
         <EditAgentHeader />
-        <StepHeader currentStep={currentStep} />
+        <StepHeader currentStep={currentStep} onStepClick={setCurrentStep} />
 
         <div className="max-w-2xl mx-auto">
           {currentStep === "type" && (
@@ -70,10 +76,16 @@ const EditAgent = () => {
               agentDescription={agentDescription}
               whatsappNumber={whatsappNumber}
               intents={intents}
+              selectedVoiceCredentialId={selectedVoiceCredentialId}
+              selectedVoiceProvider={selectedVoiceProvider}
+              selectedVoiceModel={selectedVoiceModel}
               onAgentNameChange={setAgentName}
               onAgentDescriptionChange={setAgentDescription}
               onWhatsappNumberChange={setWhatsappNumber}
               onIntentsChange={setIntents}
+              onVoiceCredentialSelect={setSelectedVoiceCredentialId}
+              onVoiceProviderSelect={setSelectedVoiceProvider}
+              onVoiceModelSelect={setSelectedVoiceModel}
               onBack={() => setCurrentStep("llm")}
               onSubmit={() => {
                 handleUpdateAgent();
