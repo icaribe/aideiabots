@@ -6,6 +6,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { HotwordConfig } from "@/components/voice/HotwordConfig";
 import { useHotwordDetection } from "@/hooks/useHotwordDetection";
+import { useAutoVoiceResponse } from "@/hooks/useAutoVoiceResponse";
 import { Message } from "@/types/chat";
 import { useState } from "react";
 
@@ -18,6 +19,8 @@ interface ChatInterfaceProps {
   voiceConfig?: {
     enabled: boolean;
     voiceId?: string;
+    provider?: string;
+    autoPlay?: boolean;
   };
 }
 
@@ -41,6 +44,9 @@ export const ChatInterface = ({
     isProcessingHotword,
     toggleContinuousListening
   } = useHotwordDetection(agentId, onSendMessage, hotwordConfig);
+
+  // Auto voice response for bot messages
+  useAutoVoiceResponse({ messages, voiceConfig });
   return (
     <div className="flex-1 flex flex-col h-screen">
       <ChatHeader agentName={agentName} />
